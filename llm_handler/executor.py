@@ -7,6 +7,7 @@ from llm_handler.handlers import (
     handle_rag_info,
     handle_single_threat_analysis,
     handle_batch_assessment,
+    handle_reevaluate_filtered,
     handle_discuss_modify,
 )
 
@@ -70,6 +71,13 @@ class RiskAgentExecutor:
             output_text, updated_state = handle_batch_assessment(
                 state=state,
                 risk_analyzer=self.risk_analyzer,
+            )
+        elif intent == IntentType.REEVALUATE_FILTERED:
+            output_text, updated_state = handle_reevaluate_filtered(
+                state=state,
+                risk_analyzer=self.risk_analyzer,
+                entities=entities,
+                user_input=user_input,
             )
         elif intent == IntentType.DISCUSS_MODIFY:
             output_text, updated_state = handle_discuss_modify(

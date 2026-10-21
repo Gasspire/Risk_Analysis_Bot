@@ -71,7 +71,7 @@ class LLMChainFactory:
         tmpl = ChatPromptTemplate.from_messages([
             ("system", prompt.INTENT_SYSTEM_PROMPT),
             ("human", "{input}"),
-        ])
+        ]).partial(intent_examples=prompt.INTENT_EXAMPLES)
         return tmpl | llm.with_structured_output(models.IntentOutput)
 
     def get_rag_info_chain(self):

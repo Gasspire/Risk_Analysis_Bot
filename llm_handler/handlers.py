@@ -1,5 +1,5 @@
 import uuid
-from typing import Tuple, Dict, Any, Optional
+from typing import Tuple, Dict, Any, Optional, List
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 
@@ -182,6 +182,94 @@ def handle_batch_assessment(
     return "\n".join(summary_lines), state
 
 
+def handle_reevaluate_filtered(
+    state: SessionStateData,
+    risk_analyzer: RiskAnalyzer,
+    entities: Dict[str, Any],
+    user_input: str = "",
+) -> Tuple[str, SessionStateData]:
+    if not state.assessment_results:
+        return (
+            "No threats present in the assessment report to evaluate. Please load a threat file before proceeding.",
+            state,
+        )
+
+    filter_value = (
+        entities.get("filter_value")
+        or entities.get("affected_assets")
+        or entities.get("target_filter")
+        or ""
+    )
+    filter_condition = entities.get("filter_condition") or ""
+
+    matched_records: List[ThreatRecord] = []
+
+    # 1. Filtro per asset menzionati
+    if filter_value:
+        keywords = [
+            k.strip().lower()
+            for k in filter_value.replace(",", " ").split()
+            if len(k.strip()) > 2
+        ]
+        matched_records = [
+            r
+            for r in state.assessment_results
+            if any(k in r.affected_assets.lower() or k in r.threat.lower() for k in keywords)
+        ]
+
+    # 2. Filtro per condizioni numeriche (es. impact > 3, likelihood >= 4)
+    if not matched_records and filter_condition:
+        cond_lower = filter_condition.lower()
+        digits = [int(s) for s in cond_lower.split() if s.isdigit()]
+        thresh = digits[0] if digits else 3
+        if "impact" in cond_lower:
+            if ">" in cond_lower:
+                matched_records = [r for r in state.assessment_results if r.impact > thresh]
+            elif "<" in cond_lower:
+                matched_records = [r for r in state.assessment_results if r.impact < thresh]
+            else:
+                matched_records = [r for r in state.assessment_results if r.impact >= thresh]
+        elif "likelihood" in cond_lower:
+            if ">" in cond_lower:
+                matched_records = [r for r in state.assessment_results if r.likelihood > thresh]
+            elif "<" in cond_lower:
+                matched_records = [r for r in state.assessment_results if r.likelihood < thresh]
+            else:
+                matched_records = [r for r in state.assessment_results if r.likelihood >= thresh]
+
+    # 3. Fallback: ricerca di corrispondenze dirette tra user_input e le minacce caricate
+    if not matched_records and user_input:
+        for r in state.assessment_results:
+            if r.threat.lower() in user_input.lower() or r.affected_assets.lower() in user_input.lower():
+                matched_records.append(r)
+
+    # 4. Se nessun filtro specifico è individuabile, rivaluta l'intera lista
+    if not matched_records:
+        matched_records = state.assessment_results
+
+    updated_subset = risk_analyzer.evaluate_list_of_threats(
+        threat_list=matched_records,
+        general_context=state.general_context,
+        rules_l=state.custom_rules_likelihood,
+        rules_i=state.custom_rules_impact,
+        num_iterations=state.num_iterations,
+    )
+
+    subset_map = {r.id: r for r in updated_subset}
+    state.assessment_results = [subset_map.get(r.id, r) for r in state.assessment_results]
+
+    summary_lines = [
+        f"### Re-evaluation Completed ({len(updated_subset)} threats re-assessed)\n"
+    ]
+    for record in updated_subset:
+        icon, label = get_risk_indicator(record.risk_factor)
+        summary_lines.append(
+            f"- {icon} **{record.threat}** | Likelihood: {record.likelihood}/5 | Impact: {record.impact}/5 | **Risk Factor: {record.risk_factor}/25 ({label})**"
+        )
+
+    return "\n".join(summary_lines), state
+
+
 def handle_discuss_modify(
     user_input: str,
     state: SessionStateData,
@@ -195,12 +283,46 @@ def handle_discuss_modify(
         target_record = next((r for r in state.assessment_results if r.id == active_id), None)
 
     if not target_record:
-        search_term = entities.get("threat") or entities.get("target_threat") or ""
-        if search_term:
+        # Cerca estraendo threat_name, threat o target_threat
+        search_term = (
+            entities.get("threat_name")
+            or entities.get("threat")
+            or entities.get("target_threat")
+            or entities.get("target_record")
+            or ""
+        )
+        if isinstance(search_term, str):
+            clean_term = search_term.lower().strip(" '\".,;:!?")
+        else:
+            clean_term = ""
+
+        # 1. Matching bidirezionale su clean_term
+        if clean_term:
             target_record = next(
-                (r for r in state.assessment_results if search_term.lower() in r.threat.lower()),
+                (
+                    r for r in state.assessment_results
+                    if clean_term in r.threat.lower() or r.threat.lower() in clean_term
+                ),
                 None,
             )
+            # Se non trovato, cerca per parole significative
+            if not target_record:
+                sig_words = [
+                    w for w in clean_term.split()
+                    if len(w) > 3 and w not in ["threat", "attack", "risk", "minaccia", "attacco"]
+                ]
+                if sig_words:
+                    target_record = next(
+                        (r for r in state.assessment_results if any(w in r.threat.lower() for w in sig_words)),
+                        None,
+                    )
+
+        # 2. Fallback: cerca se una delle minacce registrate è citata direttamente in user_input
+        if not target_record and state.assessment_results:
+            for r in state.assessment_results:
+                if r.threat.lower() in user_input.lower():
+                    target_record = r
+                    break
 
         if not target_record:
             return (
