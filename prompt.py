@@ -1,4 +1,3 @@
-
 CLASSIFICATION_EXAMPLES = """
 Input: threat="Ransomware infection", affected_assets="Servers", security_measures="Next-Gen Firewall, Offline Backups, Security Awareness Training"
 Output: {
@@ -162,27 +161,180 @@ SYNTHESIS_SYSTEM_PROMPT = """You are a cybersecurity expert. Your task is to syn
 CRITICAL RULE: You MUST justify the exact 'Final Score' provided. Do not contradict the Final Score. 
 The synthesis MUST NOT introduce any new facts, assets, vulnerabilities, controls, attack paths, frequency assumptions, or consequences that are absent from the previous reasonings and original input."""
 
+INTENT_EXAMPLES = """
+Input: "Could we analyze Disclosure of Information?"
+Output: {
+  "intent": "single_threat_analysis",
+  "extracted_entities": {
+    "threat_name": "Disclosure of Information"
+  }
+}
+
+Input: "Evaluate the threat 'Ransomware attack' on medical workstations protected by offline backups and EDR"
+Output: {
+  "intent": "single_threat_analysis",
+  "extracted_entities": {
+    "threat_name": "Ransomware attack",
+    "affected_assets": "medical workstations",
+    "security_measures": "offline backups and EDR"
+  }
+}
+
+Input: "Please assess the risk of Unauthorized physical access to the server room"
+Output: {
+  "intent": "single_threat_analysis",
+  "extracted_entities": {
+    "threat_name": "Unauthorized physical access",
+    "affected_assets": "server room"
+  }
+}
+
+Input: "What is the difference between MITRE ATT&CK tactics and techniques?"
+Output: {
+  "intent": "rag_info",
+  "extracted_entities": {}
+}
+
+Input: "How do syringe infusion pumps communicate over wireless networks and what protocols do they typically use?"
+Output: {
+  "intent": "rag_info",
+  "extracted_entities": {}
+}
+
+Input: "Can you explain the concept of defense-in-depth in a clinical network environment?"
+Output: {
+  "intent": "rag_info",
+  "extracted_entities": {}
+}
+
+Input: "Run the risk assessment on all loaded threats from the file."
+Output: {
+  "intent": "batch_assessment",
+  "extracted_entities": {}
+}
+
+Input: "Start the batch risk evaluation for the entire dataset."
+Output: {
+  "intent": "batch_assessment",
+  "extracted_entities": {}
+}
+
+Input: "Evaluate all pending threats in the assessment list."
+Output: {
+  "intent": "batch_assessment",
+  "extracted_entities": {}
+}
+
+Input: "Re-evaluate all threats."
+Output: {
+  "intent": "batch_assessment",
+  "extracted_entities": {}
+}
+
+Input: "Re-evaluate the threats with updated rules."
+Output: {
+  "intent": "batch_assessment",
+  "extracted_entities": {}
+}
+
+Input: "Re-evaluate only threats affecting the Cloud Database or Servers."
+Output: {
+  "intent": "reevaluate_filtered",
+  "extracted_entities": {
+    "filter_target": "affected_assets",
+    "filter_value": "Cloud Database, Servers"
+  }
+}
+
+Input: "Re-assess all threats that have an impact score higher than 3."
+Output: {
+  "intent": "reevaluate_filtered",
+  "extracted_entities": {
+    "filter_condition": "impact > 3"
+  }
+}
+
+Input: "I disagree with the likelihood score for 'Ransomware attack', it should be 2 because our staff is well trained."
+Output: {
+  "intent": "discuss_modify",
+  "extracted_entities": {
+    "threat_name": "Ransomware attack",
+    "target_parameter": "likelihood",
+    "suggested_score": 2,
+    "user_rationale": "staff is well trained"
+  }
+}
+
+Input: "Why was the impact of Denial of Service evaluated as 4? Explain the reasoning."
+Output: {
+  "intent": "discuss_modify",
+  "extracted_entities": {
+    "threat_name": "Denial of Service"
+  }
+}
+
+Input: "Change impact score to 3 for 'Theft of medical equipment'."
+Output: {
+  "intent": "discuss_modify",
+  "extracted_entities": {
+    "threat_name": "Theft of medical equipment",
+    "target_parameter": "impact",
+    "suggested_score": 3
+  }
+}
+
+Input: "Let's discuss the evaluation of Ransomware attack."
+Output: {
+  "intent": "discuss_modify",
+  "extracted_entities": {
+    "threat_name": "Ransomware attack"
+  }
+}
+
+Input: "Hello, good morning!"
+Output: {
+  "intent": "unknown",
+  "extracted_entities": {}
+}
+
+Input: "Can you write a poem about artificial intelligence?"
+Output: {
+  "intent": "unknown",
+  "extracted_entities": {}
+}
+
+Input: "What is the capital of France?"
+Output: {
+  "intent": "unknown",
+  "extracted_entities": {}
+}
+"""
+
 INTENT_SYSTEM_PROMPT = """You are an intent classification routing agent for a cybersecurity risk assessment bot.
 Classify the user input into EXACTLY one of the allowed intents based on these rules:
 
 1. 'single_threat_analysis':
-   - Use this when the user asks to ANALYZE, EVALUATE, ASSESS, or CHECK a specific threat (e.g., "Could we analyze Disclosure of Information?", "Evaluate Ransomware attack", "Assess threat X").
-   - Extract the threat name into 'threat_name'.
+   - Use this when the user asks to ANALYZE, EVALUATE, ASSESS, or CHECK a specific new threat from scratch.
+   - Extract the threat name into 'threat_name'. Also extract 'affected_assets' and 'security_measures' if specified.
 
 2. 'rag_info':
-   - Use ONLY when the user asks GENERAL cybersecurity questions, definitions, theoretical concepts, or hypothetical scenario explanations without asking to perform a risk analysis evaluation (e.g., "What is Ransomware?", "How do infusion pumps work?").
+   - Use ONLY when the user asks GENERAL cybersecurity questions, definitions, theoretical concepts, or hypothetical scenario explanations without asking to perform a risk analysis evaluation.
 
 3. 'batch_assessment':
-   - The user explicitly asks to run/start the evaluation on all loaded threats.
+   - Use this when the user asks to run, start, re-run, or RE-EVALUATE ALL loaded threats in the assessment report (e.g., "Run evaluation", "Re-evaluate all threats", "Rivaluta tutte le minacce", "Re-calculate scores").
 
 4. 'reevaluate_filtered':
-   - The user wants to filter and re-evaluate threats matching specific conditions, assets, or rules.
+   - Use this when the user wants to filter and re-evaluate a specific SUBSET of threats matching specific conditions, assets, or criteria (e.g., "Re-evaluate only threats affecting servers", "Rivaluta solo le minacce con impatto > 3").
+   - Extract the filter into 'filter_value', 'affected_assets', or 'filter_condition'.
 
 5. 'discuss_modify':
-   - The user wants to discuss, adjust, or manually override the scores of an already evaluated threat.
+   - Use this when the user wants to discuss, ask explanations about, adjust, or manually override the scores of an already evaluated threat (e.g., "Why is likelihood 4 for Ransomware?", "Change impact of Phishing to 2", "Let's discuss threat X").
+   - ALWAYS extract the threat name into 'threat_name'. Also extract 'target_parameter' ('likelihood' or 'impact') and 'suggested_score' if provided.
 
 6. 'unknown':
    - The prompt does not fit any of the above categories.
+
+{intent_examples}
 """
 
 STATE_EXTRACTOR_PROMPT = """You are a precise cybersecurity entity extractor.
