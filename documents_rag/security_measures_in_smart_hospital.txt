@@ -1,0 +1,61 @@
+Antiseismic build: Structural engineering and architectural design ensuring the hospital building can withstand earthquakes, protecting critical infrastructure, patients, and staff.
+Evacuation procedures: Standardized, thoroughly practiced emergency routes and protocols for safely moving patients and staff out of the facility during physical disasters.
+Automatic fire alarm system: Networked smoke and heat sensors that immediately trigger alerts, activate safety protocols, and notify emergency services upon detecting a fire.
+Fire extinguishing gas: Specialized fire suppression systems used in sensitive areas like data centers to extinguish flames without using water that would destroy electronic servers.
+Critical systems elevated (first floor): An architectural strategy placing essential data centers and power supplies above ground level to prevent destruction during floods.
+Anti-contamination system / Sterilization protocols: Rigorous hygiene systems, air filtration, and cleaning procedures designed to prevent the spread of biological hazards or infectious diseases.
+Containing procedures: Medical and physical protocols for securely isolating infected patients to prevent an epidemic from spreading to other wards.
+Alternative cooling system: Redundant HVAC or refrigeration units ensuring servers don't overheat and critical medical supplies (like organs or drugs) don't spoil if the primary AC fails.
+Alternative generator: Backup power supplies that automatically activate during a blackout to keep life-support machines, data centers, and vital equipment running seamlessly.
+Staff preparedness for downtime: Specialized training programs ensuring medical professionals can safely transition to manual procedures (e.g., paper charts, manual dosing) if electricity or IoT devices fail.
+Offline copy of patient's data / Backup: Secure, redundant data repositories stored separately from the main network, ensuring critical health records can be restored after a ransomware attack or system failure.
+Load balancing system: IT networking solution that distributes digital traffic evenly across multiple servers, preventing the hospital's systems from crashing under sudden heavy usage.
+Security Awareness Training / Phishing simulation: Continuous educational programs designed to teach hospital staff how to recognize cyber threats, avoid phishing links, and practice good digital hygiene.
+Network Isolation / Segmentation (VLANs): Dividing the hospital's overarching IT network into separate, isolated segments (e.g., separating guest Wi-Fi from critical medical devices) to contain cyberattacks.
+Limited network access for IoT devices: Strict firewall rules ensuring smart medical devices can only communicate with necessary servers, significantly reducing their exposure to hackers.
+Anti-Virus: Essential security software installed on hospital endpoints to proactively detect, quarantine, and remove malicious software.
+Role-Based Access Control (RBAC): IT security policy ensuring that users only have access to the digital systems and patient data strictly necessary for their specific job role.
+Biometric authentication / Badge readers: Physical and digital security controls requiring fingerprints, facial recognition, or secure smart cards to access restricted hospital areas or log into clinical systems.
+Strict device assignment policies: Administrative rules dictating exactly which staff member is responsible for specific mobile devices or workstations during a shift to ensure accountability.
+Encryption (at rest and in transit): Cryptographic techniques used to scramble sensitive patient data on storage drives and across the network, making it unreadable if intercepted by attackers.
+Strict password policy / Default password modification: Enforced rules requiring all staff and newly installed IoT devices to use complex, unique passwords instead of easily guessable factory defaults.
+Clean desk policy: Administrative rule requiring staff to clear all sensitive paper documents and lock their workstations whenever they step away.
+Secure locked archives: Heavy-duty physical cabinets and restricted rooms used to safely store paper records, financial documents, and sensitive administrative files.
+Supervised disposal/shredding procedures: Secure destruction protocols for physical documents to prevent unauthorized individuals from finding sensitive information in the hospital's trash.
+Multi-Factor Authentication (MFA): A security mechanism requiring staff to provide two or more forms of verification (e.g., a password and a code sent to their phone) to access hospital networks.
+Password managers: Secure, encrypted applications provided to staff to generate and store complex passwords, preventing the use of weak passwords or writing them on sticky notes.
+Data Loss Prevention (DLP) systems: Security software that monitors internal networks to prevent staff from accidentally or maliciously sending sensitive patient data outside the hospital.
+Strict audit logging: Automated, unalterable recording of all user activities within clinical systems, essential for investigating data breaches or tracing unauthorized access.
+Tamper-evident seals: Physical stickers or sensors on medical hardware that immediately show if an unauthorized person has attempted to open or modify the device.
+Physical security monitoring / CCTV surveillance: Networked camera systems and sensors covering access points, corridors, and sensitive areas to deter theft and record physical intrusions.
+Endpoint integrity checks on boot: Automated security scans that run when a medical device turns on to verify that its core operating software hasn't been maliciously altered.
+Code signing: A cryptographic verification method ensuring that firmware updates for medical devices come directly from a trusted manufacturer and haven't been tampered with by hackers.
+Strict change management protocols: Formal administrative processes requiring careful review, testing, and approval before any updates or changes are applied to the hospital's IT infrastructure.
+File Integrity Monitoring (FIM): Security software that constantly watches critical system files on hospital servers and alerts administrators if they are modified unexpectedly.
+Security guard patrols: Trained physical security personnel who actively monitor the hospital grounds, enforce access rules, and respond to incidents or unauthorized presence.
+Robust physical housing / Equipment anchoring: Heavy-duty enclosures and physical locking mechanisms that secure expensive machinery (like MRI machines) and IT servers to prevent theft or physical sabotage.
+Strict supervision of critical areas: Protocols ensuring that highly sensitive zones, such as drug storage or server rooms, are never left unmonitored or accessible without authorization.
+Principle of Least Privilege (PoLP): A foundational security concept ensuring staff and applications are granted the bare minimum permissions necessary to perform their tasks.
+Periodic access reviews: Regular administrative audits to check staff permissions, removing access rights for employees who have changed roles or left the hospital.
+User and Entity Behavior Analytics (UEBA): Advanced AI-driven security tools that monitor network activity to detect abnormal patterns, such as a user downloading massive amounts of data at unusual hours.
+Business Continuity Plan (BCP): A comprehensive, documented strategy outlining how the hospital will maintain critical patient care and operations during severe disruptions or disasters.
+Cross-training programs: Proactive training ensuring medical and IT staff have skills across different areas, allowing the hospital to function even if a specific department is severely understaffed.
+On-call contracts with third-party providers: Agreements with external emergency response teams or IT experts who can step in immediately to assist during a crisis.
+Resource capacity planning: Strategic management and forecasting of the hospital's needs to ensure it never runs out of necessary IT bandwidth, server space, or physical medical supplies.
+Buffer stock for critical supplies: Maintaining an emergency reserve of essential medical items to ensure continuous patient care even if external supply chains are disrupted.
+Cloud elasticity for IT workloads: Utilizing adaptable cloud computing resources that can automatically scale up processing power during unexpected spikes in digital traffic.
+Scheduled patch management: The systematic process of regularly updating software and device firmware across the hospital to close known security vulnerabilities before they can be exploited.
+IT asset lifecycle management: Securely tracking, maintaining, and eventually destroying hospital hardware to ensure sensitive data is not recovered from discarded computers.
+Automated vulnerability scanning: Security tools that continuously probe the hospital's internal and external networks to find and report weaknesses in real-time.
+Two-person rule / Double-check verification: A strict protocol requiring two authorized staff members to mutually approve highly critical actions, such as altering core databases or dispensing lethal medications.
+Strict input validation / Parameter bounds checking: Software safeguards in medical applications that prevent users from entering dangerous or impossible values (e.g., inputting a fatal drug dosage by mistake).
+Network Access Control (NAC): Security systems that scan devices trying to connect to the hospital network, blocking them if they lack proper antivirus or compliance updates.
+BYOD security policies / Mobile Device Management (MDM): Software solutions and rules that allow the hospital's IT team to secure, monitor, and remotely wipe personal or staff-issued mobile devices.
+Endpoint tracking: GPS or network-based tracking systems used to quickly locate misplaced or stolen hospital equipment, such as staff tablets or diagnostic tools.
+Internal firewalls / Zero Trust architecture: A modern cybersecurity framework that places strict barriers *inside* the network and continuously verifies every user and device, preventing threats from moving laterally.
+Strictly isolated guest network: A completely separate Wi-Fi network provided for patients and visitors that physically and logically cannot access internal clinical systems.
+Mandatory VPN for remote internal access: A highly secure, encrypted digital tunnel required for any staff member attempting to access internal hospital systems from outside the facility.
+WPA3 enterprise encryption: The latest standard of Wi-Fi security used to protect the wireless transmission of data across the hospital from being intercepted.
+Regular environmental auditing: Routine inspections of hospital spaces and hygiene protocols to ensure absolute compliance with health and safety standards.
+Automated UV-C disinfection robots: Autonomous smart machines that use ultraviolet light to sanitize operating rooms and isolation wards, minimizing infection risks for cleaning staff.
+Segregation of duties: An administrative control ensuring no single individual has total authority over an entire critical process, reducing the risk of internal fraud or sabotage.

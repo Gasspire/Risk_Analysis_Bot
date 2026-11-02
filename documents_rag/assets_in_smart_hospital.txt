@@ -1,0 +1,45 @@
+Building: The physical infrastructure and premises of the hospital where all healthcare operations, patient care, and administrative tasks take place.
+Patients: The individuals receiving medical care, treatment, and monitoring within the hospital.
+Staff: Doctors, nurses, administrators, IT personnel, and support workers who operate the hospital and deliver care.
+Oxygen bottles: Physical tanks storing compressed oxygen used for critical patient respiratory support and therapies.
+Visitors: Family members, friends, or other external individuals visiting patients or staff within the hospital premises.
+Data center: The centralized facility housing the hospital's servers, storage systems, and critical IT infrastructure that powers digital healthcare services and databases.
+Organ cold storage: Specialized refrigeration units used to strictly preserve organs destined for transplantation at optimal temperatures.
+Drug storage: Secure physical locations and rooms where medications, including controlled substances, are safely kept before distribution.
+Automatic drug dispenser: Automated cabinets or robotic systems that securely store and precisely dispense medications to authorized staff, reducing human error.
+PC for patient registration: Computers used by administrative staff at the reception desk to input, manage, and retrieve patient admission data.
+IoT devices: A broad category of Internet-connected devices (including wearables, medical devices, and sensors) that collect, transmit, and monitor real-time health and environmental data.
+Patient's data / Databases: Digital records containing sensitive medical histories, treatments, personal details, and clinical logs of the patients.
+Medical workstations / IT endpoints: Computers or terminals used by medical staff in wards to access clinical applications, prescribe medications, and review test results.
+Mobile devices / Staff tablets / Laptops: Portable computing devices used by nurses and doctors on the move to verify prescriptions at the patient's bedside, consult charts, or manage hospital operations remotely.
+IP cameras: Networked security cameras used to monitor hospital premises, restricted areas, and sometimes patient rooms to ensure physical safety.
+Patient monitoring sensors / Vital signs monitors: Connected medical devices that continuously track critical health metrics of a patient, such as heart rate, blood pressure, and oxygen saturation.
+Microphones in consultation rooms: Audio input devices used for voice-to-text dictation of medical notes, remote telemedicine appointments, or ambient clinical listening.
+Physical patient health records: Paper-based charts, files, and medical histories that the hospital maintains alongside or independently from digital systems.
+Printed financial/administrative data: Hard copies of billing information, hospital budgets, administrative reports, and sensitive institutional documents.
+Staff login credentials: The usernames, passwords, and biometric data used by employees to authenticate and securely access hospital IT systems and restricted areas.
+Electronic Health Records (EHR) application: The comprehensive software platform used to centrally store, manage, update, and securely share digital versions of patients' medical charts.
+Personally Identifiable Information (PII): Any sensitive data that could potentially identify a specific individual, such as social security numbers, home addresses, and birth dates.
+Research data: Highly valuable and sensitive data collected during clinical trials, experimental treatments, or medical studies conducted within the hospital.
+Infusion pumps: Smart, networked medical devices that deliver fluids, such as nutrients, antibiotics, and medications, into a patient's body in highly controlled amounts.
+IoT device firmware: The low-level software programmed directly into the hardware of connected medical devices to control their vital functions and network communications.
+Diagnostic imaging software: Specialized applications used by radiologists and doctors to view, manipulate, and analyze digital medical images like X-rays, MRIs, and CT scans.
+Server room: A secure, climate-controlled room within the hospital dedicated to housing local network switches, internal servers, and on-premise data storage.
+Critical medical wards (ICUs, Operating rooms, Isolation wards): Highly specialized physical areas where intensive care, sensitive surgeries, and strict infection control protocols take place.
+MRI machines: Large, complex, and highly expensive medical imaging machines that require specialized physical environments and deep IT network integration.
+Network switches / Routers / Firewalls: The foundational networking hardware and software rules that direct, manage, and protect all data traffic across the hospital's internal network.
+Core network configuration: The underlying architecture and settings of the hospital's IT network, dictating how different segments (like Guest Wi-Fi vs. Medical IoT) interact.
+Financial systems: Software platforms used to handle patient billing, insurance claims processing, and general hospital accounting.
+Clinical operations: The core daily workflows, procedures, and logistical processes involved in delivering patient care efficiently.
+IT security monitoring: The tools, dashboards, and systems used by the cybersecurity team to proactively detect and respond to digital threats in the hospital's environment.
+Facility management: The systems and processes (such as HVAC, lighting, physical access control) that keep the hospital building functional, comfortable, and safe.
+Medical supplies: Consumable physical items like syringes, bandages, PPE, and surgical tools required continuously for daily patient care.
+IT server capacity / Network bandwidth: The computational resources and data transfer limits required to keep heavy hospital software (like imaging tools) and digital services running smoothly without lag.
+Radiotherapy equipment: Complex, targeted medical devices used for treating cancer patients, requiring exact calibration and secure software controls.
+Staff BYOD devices: "Bring Your Own Device" personal smartphones or tablets used by staff, which can pose security risks if they connect to the hospital network without proper management.
+USB drives: Portable storage devices used to physically transfer data between computers, often restricted in smart hospitals due to high malware infection risks.
+Entire IT and IoT infrastructure: The complete, interconnected ecosystem of computers, networks, servers, and smart medical devices operating across the whole hospital.
+Guest Wi-Fi users: Patients, visitors, and external contractors connecting to the hospital's public internet network, which must be strictly isolated from clinical systems.
+Externally facing hospital portals: Websites or web applications where patients can log in from their homes to view lab results, book appointments, or contact doctors.
+Physical life-support machinery: Extremely critical equipment, like mechanical ventilators, that physically keeps patients alive and is often integrated into the network for remote alerting.
+Critical infrastructure backups: Redundant power supplies (like emergency generators) and offline data storage systems meant to restore operations immediately after a failure or cyberattack.
