@@ -29,7 +29,8 @@ eggs/
 # Database vettoriale & file di dati locali / persistenza
 chroma_db/
 knowledge_base/
-storage/
+chats/*.json
+!chats/.gitkeep
 session_backup.json
 *.sqlite3
 *.db

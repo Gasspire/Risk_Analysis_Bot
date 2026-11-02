@@ -3,8 +3,9 @@ import uuid
 import streamlit as st
 
 from config import DEFAULT_CONTEXT
-from models import SessionStateData, ThreatRecord
+from models import SessionStateData, ThreatRecord, BotStateEnum
 from storage.session_repository import SessionRepository
+from storage.chat_repository import ChatRepository
 from core.llm_chains import LLMChainFactory
 from core.rag_engine import RAGEngine
 from core.risk_analyzer import RiskAnalyzer
@@ -17,6 +18,7 @@ st.set_page_config(page_title="Risk Assessment Copilot", layout="wide")
 @st.cache_resource
 def get_services():
     repository = SessionRepository()
+    chat_repository = ChatRepository()
     chain_factory = LLMChainFactory()
     rag_engine = RAGEngine()
     risk_analyzer = RiskAnalyzer(chain_factory=chain_factory, rag_engine=rag_engine)
@@ -25,9 +27,9 @@ def get_services():
         rag_engine=rag_engine,
         risk_analyzer=risk_analyzer,
     )
-    return repository, rag_engine, risk_analyzer, agent_executor
+    return repository, chat_repository, rag_engine, risk_analyzer, agent_executor
 
-repository, rag_engine, risk_analyzer, agent_executor = get_services()
+repository, chat_repository, rag_engine, risk_analyzer, agent_executor = get_services()
 
 if "state_data" not in st.session_state:
     loaded_state = repository.load(default_context=DEFAULT_CONTEXT)
@@ -35,10 +37,104 @@ if "state_data" not in st.session_state:
 
 state: SessionStateData = st.session_state.state_data
 
+# Inizializzazione repository chat e migrazione se cartella vuota
+available_chats = chat_repository.list_chats()
+if not available_chats:
+    if state.chat_history:
+        initial_name = "Chat_Iniziale"
+        chat_repository.save_chat(initial_name, state.chat_history)
+        available_chats = [initial_name]
+    else:
+        initial_name = chat_repository.create_chat("Chat_1")
+        available_chats = [initial_name]
+
+if "current_chat" not in st.session_state or st.session_state.current_chat not in available_chats:
+    st.session_state.current_chat = available_chats[0]
+    state.chat_history = chat_repository.load_chat(st.session_state.current_chat)
+
+def refresh_conversational_context(target_state: SessionStateData):
+    """Refresha il contesto conversazionale: azzera stato bot e minacce pendenti (Opzione A)."""
+    target_state.pending_threat = None
+    target_state.active_threat_id = None
+    target_state.bot_state = BotStateEnum.IDLE
+
 st.title("Risk Assessment Copilot")
 
 with st.sidebar:
-    st.header("Configurazione Assessment")
+    st.header("💬 Sessioni Chat")
+
+    current_chat_index = (
+        available_chats.index(st.session_state.current_chat)
+        if st.session_state.current_chat in available_chats
+        else 0
+    )
+
+    selected_chat = st.selectbox(
+        "Seleziona Chat:",
+        options=available_chats,
+        index=current_chat_index,
+        key="chat_select_box",
+    )
+
+    if selected_chat != st.session_state.current_chat:
+        st.session_state.current_chat = selected_chat
+        state.chat_history = chat_repository.load_chat(selected_chat)
+        refresh_conversational_context(state)
+        repository.save(state)
+        st.rerun()
+
+    with st.expander("✏️ Rinomina chat corrente"):
+        rename_col1, rename_col2 = st.columns([3, 1])
+        with rename_col1:
+            new_chat_title = st.text_input(
+                "Nuovo nome chat:",
+                value=st.session_state.current_chat,
+                label_visibility="collapsed",
+                key="rename_chat_title_input",
+            )
+        with rename_col2:
+            if st.button("Salva", help="Salva il nuovo nome per questa chat"):
+                if new_chat_title.strip() and new_chat_title.strip() != st.session_state.current_chat:
+                    ok, res = chat_repository.rename_chat(st.session_state.current_chat, new_chat_title.strip())
+                    if ok:
+                        st.session_state.current_chat = res
+                        st.rerun()
+                    else:
+                        st.error(res)
+
+    st.markdown("**Nuova Conversazione:**")
+    new_chat_col1, new_chat_col2 = st.columns([3, 1])
+    with new_chat_col1:
+        new_chat_name_input = st.text_input(
+            "Nome Chat",
+            placeholder="es. Analisi_Cloud",
+            label_visibility="collapsed",
+            key="new_chat_name_input",
+        )
+    with new_chat_col2:
+        if st.button("➕ Crea", help="Crea una nuova chat e refresha il contesto"):
+            new_name = chat_repository.create_chat(new_chat_name_input.strip() if new_chat_name_input else None)
+            st.session_state.current_chat = new_name
+            state.chat_history = []
+            refresh_conversational_context(state)
+            repository.save(state)
+            st.rerun()
+
+    if len(available_chats) > 1:
+        if st.button("🗑️ Elimina Chat Selezionata", help=f"Elimina definitivamente '{st.session_state.current_chat}'"):
+            chat_repository.delete_chat(st.session_state.current_chat)
+            remaining = chat_repository.list_chats()
+            if not remaining:
+                new_name = chat_repository.create_chat("Chat_1")
+                remaining = [new_name]
+            st.session_state.current_chat = remaining[0]
+            state.chat_history = chat_repository.load_chat(remaining[0])
+            refresh_conversational_context(state)
+            repository.save(state)
+            st.rerun()
+
+    st.divider()
+    st.header("🛠️ Configurazione Assessment")
     st.subheader("1. Setup Iniziale")
 
     new_context = st.text_area("Contesto Generale:", value=state.general_context, height=150)
@@ -108,6 +204,17 @@ with st.sidebar:
 tab_chat, tab_dati = st.tabs(["Assistente Analisi (Chat)", "Report Minacce"])
 
 with tab_chat:
+    col_info1, col_info2 = st.columns([8, 2])
+    with col_info1:
+        st.caption(f"📁 Chat attiva: **{st.session_state.current_chat}** ({len(state.chat_history)} messaggi)")
+    with col_info2:
+        if st.button("🔄 Svuota Chat", help="Svuota i messaggi della chat attiva e refresha lo stato conversazionale"):
+            state.chat_history = []
+            refresh_conversational_context(state)
+            chat_repository.save_chat(st.session_state.current_chat, [])
+            repository.save(state)
+            st.rerun()
+
     for message in state.chat_history:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
@@ -123,6 +230,8 @@ with tab_chat:
                     state=state
                 )
                 st.session_state.state_data = updated_state
+                # Salva sia sul file della chat attiva che sul repository globale
+                chat_repository.save_chat(st.session_state.current_chat, updated_state.chat_history)
                 repository.save(updated_state)
                 st.markdown(output_text)
 
