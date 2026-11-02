@@ -31,7 +31,6 @@ chroma_db/
 knowledge_base/
 chats/*.json
 !chats/.gitkeep
-session_backup.json
 *.sqlite3
 *.db
 
