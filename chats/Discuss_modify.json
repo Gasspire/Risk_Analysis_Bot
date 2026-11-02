@@ -1,0 +1,18 @@
+[
+  {
+    "role": "user",
+    "content": "Could we discuss about the threat hacker gets remote access"
+  },
+  {
+    "role": "assistant",
+    "content": "The requested threat is not present in the assessment report. Please check the threat name or perform an analysis first."
+  },
+  {
+    "role": "user",
+    "content": "Could we rediscuss about the threat \"Ransomware attack\"?"
+  },
+  {
+    "role": "assistant",
+    "content": "The requested threat is not present in the assessment report. Please check the threat name or perform an analysis first."
+  }
+]

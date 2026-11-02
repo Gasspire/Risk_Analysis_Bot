@@ -470,9 +470,39 @@
             "risk_factor": 10,
             "likelihood_reasoning": "While the control on kind of devices being connected is in place, its effectiveness in preventing a malicious USB from being connected is uncertain. The ease of execution for an attacker is high, making the likelihood of a successful breach rather unlikely, but not impossible.",
             "impact_reasoning": "Altering infusion pumps directly results in lethal or severely harmful consequences for the patient."
+        },
+        {
+            "id": "5e253ea3-2479-409c-a2b7-64229a62ba33",
+            "threat": "hacker gets remote access",
+            "affected_assets": "infusion pumps",
+            "security_measures": "network isolation, physical interaction only",
+            "preventive_measures": "network isolation, physical interaction only",
+            "mitigative_measures": "None",
+            "likelihood": 2,
+            "impact": 5,
+            "risk_factor": 10,
+            "likelihood_reasoning": "While the preventive controls in place are not entirely ineffective, they may not be robust enough to prevent a skilled attacker from gaining remote access to the infusion pumps. The moderate frequency of remote access attacks in healthcare environments and the potential for exploitation of vulnerabilities in medical devices suggest that the likelihood of this threat materializing is rather unlikely.",
+            "impact_reasoning": "Altering infusion pumps directly results in lethal or severely harmful consequences for the patient, fitting the highest severity level."
         }
     ],
-    "chat_history": [],
+    "chat_history": [
+        {
+            "role": "user",
+            "content": "Could we discuss about the threat hacker gets remote access"
+        },
+        {
+            "role": "assistant",
+            "content": "The requested threat is not present in the assessment report. Please check the threat name or perform an analysis first."
+        },
+        {
+            "role": "user",
+            "content": "Could we rediscuss about the threat \"Ransomware attack\"?"
+        },
+        {
+            "role": "assistant",
+            "content": "The requested threat is not present in the assessment report. Please check the threat name or perform an analysis first."
+        }
+    ],
     "general_context": "The organization is a Smart Hospital. \n\nThe hospital contains physical infrastructure, clinical operations, IT infrastructure,\nmedical IoT devices, personnel, patients and administrative services.\n",
     "custom_rules_likelihood": "",
     "custom_rules_impact": "",
