@@ -88,11 +88,11 @@
             "security_measures": "There's alway an offline copy of patient's data, prepared staff for working without IoT devices",
             "preventive_measures": "Prepared staff for working without IoT devices",
             "mitigative_measures": "Offline copy of patient's data",
-            "likelihood": 3,
-            "impact": 4,
-            "risk_factor": 12,
-            "likelihood_reasoning": "While the prepared staff can mitigate some effects, the underlying issue of the telecommunications network failure remains, making it a likely scenario.",
-            "impact_reasoning": "The failure of the telecommunications network causes a critical failure of the automatic drug dispenser and IoT devices, leading to a halt in critical operations and a direct threat to patient life and safety."
+            "likelihood": 2,
+            "impact": 5,
+            "risk_factor": 10,
+            "likelihood_reasoning": "While the control is present, it is limited in its effectiveness, and the historical frequency of telecommunications network failures in complex environments suggests that the likelihood of this threat materializing is rather unlikely.",
+            "impact_reasoning": "The failure of the telecommunications network has a catastrophic impact on the hospital's ability to provide critical care, fitting the highest severity level."
         },
         {
             "id": "0ccd4f50-9506-416f-8005-923b20cf3cba",
@@ -247,8 +247,8 @@
             "likelihood": 2,
             "impact": 5,
             "risk_factor": 10,
-            "likelihood_reasoning": "The presence of robust preventive controls significantly reduces the likelihood of successful damage to the assets. However, the possibility of an attacker exploiting the controls or finding alternative methods to cause damage cannot be entirely ruled out.",
-            "impact_reasoning": "The damage to critical medical equipment and infrastructure poses an immediate risk to patient life and safety, and the lack of mitigative controls ensures that the full impact of the breach is realized."
+            "likelihood_reasoning": "The preventive controls in place are effective in preventing or minimizing damage to the affected assets, but the threat is not entirely eliminated. The likelihood of the threat materializing is rather unlikely due to the presence of robust physical housing and equipment anchoring, but not impossible.",
+            "impact_reasoning": "The threat's success results in lethal or fatal consequences for patients, massive leakage of sensitive data, and catastrophic systemic failure of the foundational IT/IoT network architecture, fitting the highest severity level."
         },
         {
             "id": "261206b8-5e01-46ab-a430-aa6420f254d7",
@@ -257,11 +257,11 @@
             "security_measures": "Principle of Least Privilege (PoLP), periodic access reviews, User and Entity Behavior Analytics (UEBA)",
             "preventive_measures": "Principle of Least Privilege (PoLP), Periodic access reviews",
             "mitigative_measures": "User and Entity Behavior Analytics (UEBA)",
-            "likelihood": 3,
+            "likelihood": 2,
             "impact": 5,
-            "risk_factor": 15,
-            "likelihood_reasoning": "While the preventive controls are robust, the natural frequency of personnel movement and the ease of exploiting vulnerabilities in access management make successful abuse of permissions a likely scenario.",
-            "impact_reasoning": "Unauthorized access to patient databases and financial systems can lead to lethal or severely harmful consequences for patients, and catastrophic consequences for the organization, fitting the highest severity level."
+            "risk_factor": 10,
+            "likelihood_reasoning": "While abuse of permissions is a common issue, the presence of robust preventive controls like PoLP and periodic reviews significantly reduces the likelihood of successful exploitation. The threat is not continuous or trivially executed, and the controls are not entirely absent, making the likelihood of materializing rather unlikely.",
+            "impact_reasoning": "The adversary's access to patient databases and financial systems poses a catastrophic risk to patient safety and the hospital's financial stability, fitting the highest severity level."
         },
         {
             "id": "50609153-1222-4a9f-aee8-0d06d185b3e9",
@@ -282,12 +282,12 @@
             "affected_assets": "Medical supplies, IT server capacity, network bandwidth",
             "security_measures": "Resource capacity planning, buffer stock for critical supplies, cloud elasticity for IT workloads",
             "preventive_measures": "Resource capacity planning, Buffer stock for critical supplies, Cloud elasticity for IT workloads",
-            "mitigative_measures": "Buffer stock for critical supplies",
-            "likelihood": 3,
-            "impact": 4,
-            "risk_factor": 12,
-            "likelihood_reasoning": "While some preventive controls are in place, the lack of proactive measures to prevent resource depletion, such as strict resource allocation or dynamic resource allocation, makes successful exploitation of the lack of resources a likely scenario.",
-            "impact_reasoning": "The lack of resources leads to a severe degradation of clinical operations and business continuity, but the buffer stock prevents a total halt."
+            "mitigative_measures": "Buffer stock for critical supplies, Cloud elasticity for IT workloads",
+            "likelihood": 2,
+            "impact": 5,
+            "risk_factor": 10,
+            "likelihood_reasoning": "While resource shortages are a frequent issue, the presence of preventive controls like resource capacity planning and buffer stock for critical supplies significantly reduces the likelihood of a successful attack. The hospital's ability to adapt to changing demands through cloud elasticity for IT workloads further mitigates the risk. However, the ease of execution and the potential for insider exploitation suggest that the threat is not entirely eliminated.",
+            "impact_reasoning": "The lack of resources directly results in lethal or severely harmful consequences for the patient, and severe operational disruption."
         },
         {
             "id": "3a46a5c9-5811-4b22-8ac6-d5571e2ba96e",
@@ -348,11 +348,11 @@
             "security_measures": "Network segmentation (VLANs separating IT, IoMT, and Guest traffic), internal firewalls, Zero Trust architecture",
             "preventive_measures": "Network segmentation (VLANs separating IT, IoMT, and Guest traffic), Internal firewalls, Zero Trust architecture",
             "mitigative_measures": "Network segmentation (VLANs separating IT, IoMT, and Guest traffic), Internal firewalls, Zero Trust architecture",
-            "likelihood": 3,
+            "likelihood": 2,
             "impact": 5,
-            "risk_factor": 15,
-            "likelihood_reasoning": "While a basic control exists, the natural frequency of network architecture vulnerabilities and the ease of bypassing internal firewalls and Zero Trust architecture make successful unauthorized access a likely scenario.",
-            "impact_reasoning": "The breach of the entire IT and IoT infrastructure, including databases, directly results in catastrophic consequences for the hospital, fitting the highest severity level."
+            "risk_factor": 10,
+            "likelihood_reasoning": "While the threat is historically common, the presence of robust preventive controls, including network segmentation and Zero Trust architecture, significantly reduces the likelihood of a successful breach.",
+            "impact_reasoning": "The breach of the entire IT and IoT infrastructure, including databases, has catastrophic consequences for the hospital's operations and patient safety."
         },
         {
             "id": "2339126b-76b9-416e-9caf-76240edbaabf",
@@ -377,8 +377,8 @@
             "likelihood": 2,
             "impact": 5,
             "risk_factor": 10,
-            "likelihood_reasoning": "The threat is rare, but the presence of preventive controls makes it rather unlikely, as they provide a robust defense against insufficient sanitization.",
-            "impact_reasoning": "Inadequate sanitization of critical medical wards directly results in lethal or severely harmful consequences for the patient, fitting the highest severity level."
+            "likelihood_reasoning": "While the threat is frequent, the presence of multiple preventive controls makes it rather unlikely for insufficient sanitization to occur, as the measures are designed to detect and correct deviations from sterilization protocols.",
+            "impact_reasoning": "Insufficient sanitization directly results in lethal or severely harmful consequences for the patient, fitting the highest severity level."
         },
         {
             "id": "2f06efd0-78b0-4e62-adcd-00c164287d4f",
@@ -401,10 +401,10 @@
             "preventive_measures": "MFA, Network isolation of device, Dosage can be changed only by physically interacting with the pump",
             "mitigative_measures": "None",
             "likelihood": 3,
-            "impact": 5,
-            "risk_factor": 15,
+            "impact": 3,
+            "risk_factor": 9,
             "likelihood_reasoning": "While the preventive controls in place are robust, a determined attacker could potentially exploit a vulnerability or bypass the physical interaction requirement, making the threat likely.",
-            "impact_reasoning": "Altering infusion pumps directly results in lethal or severely harmful consequences for the patient, fitting the highest severity level."
+            "impact_reasoning": "The physical interaction requirement reduces the potential for harm, as an attacker would need to be physically present to alter the infusion pump, limiting the scope of the threat. However, the consequences of a successful attack are still severe, warranting a moderate impact score of 3 out of 5."
         },
         {
             "id": "06916838-ba91-447b-8076-14a7fa193d15",
@@ -426,11 +426,11 @@
             "security_measures": "firewall with strict rule",
             "preventive_measures": "firewall with strict rule",
             "mitigative_measures": "None",
-            "likelihood": 3,
+            "likelihood": 4,
             "impact": 5,
-            "risk_factor": 15,
-            "likelihood_reasoning": "While the firewall provides some protection, its limitations and the ease of exploitation of the clinical telemetry network's vulnerabilities make a successful Man-in-the-Middle attack likely.",
-            "impact_reasoning": "Altering critical patient data directly results in lethal or severely harmful consequences for the patient."
+            "risk_factor": 20,
+            "likelihood_reasoning": "While the firewall with strict rules is a good preventive control, it may not be enough to prevent a determined attacker from exploiting vulnerabilities in the clinical telemetry network. The ease of execution is moderate, as an attacker would need to identify and exploit specific vulnerabilities, but the likelihood of success is still rather high.",
+            "impact_reasoning": "The man-in-the-middle attack has the potential to cause lethal or severely harmful consequences for patients, fitting the highest severity level."
         },
         {
             "id": "2190caf8-fc85-46c1-a33b-600d292c63f2",
@@ -488,19 +488,43 @@
     "chat_history": [
         {
             "role": "user",
-            "content": "Could we discuss about the threat hacker gets remote access"
+            "content": "Hi, how was your day?"
         },
         {
             "role": "assistant",
-            "content": "The requested threat is not present in the assessment report. Please check the threat name or perform an analysis first."
+            "content": "Intent not recognized. Please reformulate your request."
         },
         {
             "role": "user",
-            "content": "Could we rediscuss about the threat \"Ransomware attack\"?"
+            "content": "What do you think about the new Legend of Zelda"
         },
         {
             "role": "assistant",
-            "content": "The requested threat is not present in the assessment report. Please check the threat name or perform an analysis first."
+            "content": "Intent not recognized. Please reformulate your request."
+        },
+        {
+            "role": "user",
+            "content": "What's Mr Robot?"
+        },
+        {
+            "role": "assistant",
+            "content": "Based on the provided Knowledge Base Context, Mr. Robot refers to the Automated UV-C disinfection robots mentioned in the context. These robots use ultraviolet light to sanitize operating rooms and isolation wards, minimizing infection risks for cleaning staff."
+        },
+        {
+            "role": "user",
+            "content": "I'm talking about the Tv series"
+        },
+        {
+            "role": "assistant",
+            "content": "It seems there's been a miscommunication. The provided Knowledge Base Context appears to be a description of a Smart Hospital's infrastructure and systems, but it doesn't seem to be related to a TV series.\n\nCould you please clarify or provide more context about the TV series you're referring to, so I can better assist you with your question?"
+        },
+        {
+            "role": "user",
+            "content": "What's your opinion of Mr Robot series, with Rami Malek"
+        },
+        {
+            "role": "assistant",
+            "content": "Intent not recognized. Please reformulate your request."
         }
     ],
     "general_context": "The organization is a Smart Hospital. \n\nThe hospital contains physical infrastructure, clinical operations, IT infrastructure,\nmedical IoT devices, personnel, patients and administrative services.\n",

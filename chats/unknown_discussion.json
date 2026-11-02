@@ -1,0 +1,42 @@
+[
+  {
+    "role": "user",
+    "content": "Hi, how was your day?"
+  },
+  {
+    "role": "assistant",
+    "content": "Intent not recognized. Please reformulate your request."
+  },
+  {
+    "role": "user",
+    "content": "What do you think about the new Legend of Zelda"
+  },
+  {
+    "role": "assistant",
+    "content": "Intent not recognized. Please reformulate your request."
+  },
+  {
+    "role": "user",
+    "content": "What's Mr Robot?"
+  },
+  {
+    "role": "assistant",
+    "content": "Based on the provided Knowledge Base Context, Mr. Robot refers to the Automated UV-C disinfection robots mentioned in the context. These robots use ultraviolet light to sanitize operating rooms and isolation wards, minimizing infection risks for cleaning staff."
+  },
+  {
+    "role": "user",
+    "content": "I'm talking about the Tv series"
+  },
+  {
+    "role": "assistant",
+    "content": "It seems there's been a miscommunication. The provided Knowledge Base Context appears to be a description of a Smart Hospital's infrastructure and systems, but it doesn't seem to be related to a TV series.\n\nCould you please clarify or provide more context about the TV series you're referring to, so I can better assist you with your question?"
+  },
+  {
+    "role": "user",
+    "content": "What's your opinion of Mr Robot series, with Rami Malek"
+  },
+  {
+    "role": "assistant",
+    "content": "Intent not recognized. Please reformulate your request."
+  }
+]
