@@ -1,4 +1,4 @@
-# 🛡️ Risk Assessment Copilot (Risk Analysis Bot)
+#  Risk Assessment Copilot (Risk Analysis Bot)
 
 **Risk Assessment Copilot** è una piattaforma interattiva per l'analisi e la gestione del rischio cyber e fisico, sviluppata con **Streamlit**, **LangChain**, **Ollama** e **ChromaDB**. 
 
@@ -6,11 +6,11 @@ Il sistema è allineato con la metodologia dello standard internazionale **ISO/I
 
 ---
 
-## 🏥 Scenario di Test e Validazione: Smart Hospital (ENISA)
+##  Scenario di Test e Validazione: Smart Hospital (ENISA)
 
 Il sistema è stato testato su uno scenario ad alta criticità: la protezione delle infrastrutture sanitarie connesse, prendendo come riferimento lo studio ufficiale dell'Agenzia dell'Unione europea per la cybersecurity (ENISA):
 
-> 📄 **ENISA Publication:** [Cyber Security and Resilience for Smart Hospitals](https://www.enisa.europa.eu/publications/cyber-security-and-resilience-for-smart-hospitals)
+>  **ENISA Publication:** [Cyber Security and Resilience for Smart Hospitals](https://www.enisa.europa.eu/publications/cyber-security-and-resilience-for-smart-hospitals)
 
 ### Dati e Contesto di Test
 - **Asset sanitari e IoT medicale (IoMT):** Dispositivi medici connessi (infusion pumps, monitor multiparametrici), server PACS/RIS, sistemi EHR/cartella clinica elettronica, sottostazioni di rete e sistemi BMS (*Building Management Systems*).
@@ -19,41 +19,41 @@ Il sistema è stato testato su uno scenario ad alta criticità: la protezione de
 
 ---
 
-## 🚀 Caratteristiche Principali
+##  Caratteristiche Principali
 
-- **🤖 Assistente Conversazionale a Stati (Risk Agent Executor):**
+- **Assistente Conversazionale a Stati (Risk Agent Executor):**
   - Routing intelligente degli intenti tramite LLM (`rag_info`, `single_threat_analysis`, `batch_assessment`, `reevaluate_filtered`, `discuss_modify`).
   - Macchina a stati (`IDLE`, `AWAITING_THREAT_DETAILS`, `DISCUSSING_THREAT`) per raccogliere proattivamente dettagli mancanti (minaccia, asset, contromisure).
   - Possibilità di discutere, rifinire e calibrare le valutazioni direttamente via chat in linguaggio naturale.
 
-- **📊 Metodologia di Risk Assessment Rigorosa:**
+- **Metodologia di Risk Assessment Rigorosa:**
   - **Classificazione Controlli di Sicurezza:** Suddivisione automatica delle misure fornite in **Preventive** (riducono la probabilità prima dell'evento) e **Mitigative** (riducono l'impatto o agevolano la risposta/ripristino).
   - **Calcolo Likelihood (1 - 5):** Valutazione basata su frequenza storica, facilità di esecuzione e controlli preventivi.
   - **Calcolo Impact (1 - 5):** Valutazione dello scenario peggiore (*worst-case*), impatto sulla vita umana, continuità dei servizi essenziali, riservatezza dei dati e controlli mitigativi.
   - **Risk Factor (1 - 25):** Calcolo della matrice di rischio $P \times I$ con indicazione visiva del livello (Very Low, Low, Medium, High, Critical).
 
-- **🔄 Valutazione Multi-Run con Moda Statistica:**
+- **Valutazione Multi-Run con Moda Statistica:**
   - Supporto per esecuzioni multiple per minaccia (1–10 iterazioni).
   - Calcolo della **moda statistica** per neutralizzare la varianza delle risposte del modello.
   - Catena LLM di **sintesi coerente** per produrre motivazioni allineate al punteggio finale consolidato.
 
-- **📚 Motore RAG con ChromaDB:**
+- **Motore RAG con ChromaDB:**
   - Caricamento automatico di documentazione da `./knowledge_base` o `./documents_rag` e upload dinamico di file di policy/inventari asset (`.txt`) direttamente dall'interfaccia.
   - Indicizzazione vettoriale con `nomic-embed-text` e ricerca di similarità semantica per contestualizzare ogni analisi.
 
-- **⚡ Valutazioni Batch e Filtrate:**
+- **Valutazioni Batch e Filtrate:**
   - Importazione di inventari minacce da file JSON.
   - Esecuzione massiva dell'assessment su tutto il dataset con un solo click.
   - Rivalutazione mirata e filtrata per specifici asset o condizioni di rischio (es. impatto > 3).
 
-- **🎛️ Personalizzazione, Override Manuale e Persistenza:**
+- **Personalizzazione, Override Manuale e Persistenza:**
   - Inserimento di regole personalizzate per Likelihood e Impact da parte dell'analista.
   - Override manuale dei punteggi nel pannello di reportistica per garantire pieno controllo all'operatore umano (*Human-in-the-Loop*).
   - Persistenza automatica della sessione (stato, chat history, minacce) su `session_backup.json`.
 
 ---
 
-## 🏗️ Architettura del Progetto
+## Architettura del Progetto
 
 ```
 Risk_Analysis_Bot/
@@ -86,7 +86,7 @@ Risk_Analysis_Bot/
 
 ---
 
-## 📋 Prerequisiti
+## Prerequisiti
 
 1. **Python 3.10+** (consigliato Python 3.10 o 3.11).
 2. **Ollama**:
@@ -99,7 +99,7 @@ Risk_Analysis_Bot/
 
 ---
 
-## ⚙️ Installazione e Configurazione
+## Installazione e Configurazione
 
 ### 1. Clona il repository e posizionati nella cartella di progetto:
 ```bash
@@ -137,7 +137,7 @@ SESSION_FILE = "session_backup.json"    # File di backup della sessione
 
 ---
 
-## 🖥️ Avvio dell'Applicazione
+## Avvio dell'Applicazione
 
 Avvia l'applicazione Streamlit:
 ```bash
@@ -148,7 +148,7 @@ L'interfaccia web si aprirà automaticamente nel browser all'indirizzo `http://l
 
 ---
 
-## 📖 Guida all'Utilizzo
+## Guida all'Utilizzo
 
 ### 1. Configurazione Iniziale (Sidebar)
 - **Contesto Generale:** Inserisci informazioni relative all'organizzazione (es. settore ospedaliero, infrastruttura cloud, sede geografica).
@@ -182,7 +182,7 @@ Puoi interagire in linguaggio naturale con l'assistente per:
 
 ---
 
-## 📄 Formato File JSON Minacce
+## Formato File JSON Minacce
 
 Il caricamento delle minacce da file richiede un array JSON contenente esclusivamente i campi fondamentali: `threat`, `affected_assets` e `security_measures`:
 
@@ -206,11 +206,9 @@ Il caricamento delle minacce da file richiede un array JSON contenente esclusiva
 ]
 ```
 
-> **Nota:** I campi analitici (`likelihood`, `impact`, `preventive_measures`, `mitigative_measures` e `risk_factor`) non devono essere pre-compilati: verranno calcolati, classificati e arricchiti automaticamente dal modello durante la fase di assessment.
-
 ---
 
-## 🛠️ Tecnologie Utilizzate
+## Tecnologie Utilizzate
 
 - **[Streamlit](https://streamlit.io/)**: Interfaccia utente web reattiva, modulare e intuitiva.
 - **[LangChain](https://www.langchain.com/)**: Catene prompt/LLM e orchestrazione con output strutturato Pydantic.
