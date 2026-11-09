@@ -16,7 +16,6 @@ class RiskAgentExecutor:
     Orchestratore puro per la gestione del dialogo e delle operazioni del Bot.
     Riceve lo stato immutabile o mutabile e restituisce la risposta formattata e lo stato finale aggiornato.
     """
-
     def __init__(
         self,
         chain_factory: LLMChainFactory,

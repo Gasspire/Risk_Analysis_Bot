@@ -19,11 +19,8 @@ class LLMChainFactory:
         self.temperature = temperature
         self.base_url = base_url
 
-
-
     def get_llm(self, num_predict: int = 800, json_format: bool = False) -> ChatOllama:
         """Crea un'istanza di ChatOllama configurata."""
-
         kwargs = {
             "model": self.model_name,
             "temperature": self.temperature,
@@ -36,8 +33,6 @@ class LLMChainFactory:
 
         return ChatOllama(**kwargs)
 
-
-
     def get_classification_chain(self):
         llm = self.get_llm()
 
@@ -48,8 +43,6 @@ class LLMChainFactory:
 
         return tmpl | llm.with_structured_output(models.TypeOfMeasures)
 
-
-
     def get_likelihood_chain(self):
         llm = self.get_llm()
 
@@ -58,8 +51,6 @@ class LLMChainFactory:
             ("human", prompt.HUMAN_PROMPT_LIKELIHOOD),
         ]).partial(likelihood_examples=prompt.LIKELIHOOD_EXAMPLES)
         return tmpl | llm.with_structured_output(models.LikelihoodOutput)
-
-
 
     def get_impact_chain(self):
         llm = self.get_llm()
@@ -70,8 +61,6 @@ class LLMChainFactory:
         ]).partial(impact_examples=prompt.IMPACT_EXAMPLES)
         return tmpl | llm.with_structured_output(models.ImpactOutput)
 
-
-
     def get_synthesis_chain(self):
         llm = self.get_llm()
 
@@ -81,7 +70,6 @@ class LLMChainFactory:
         ])
         return tmpl | llm.with_structured_output(models.SynthesisOutput)
 
-
     def get_intent_chain(self):
         llm = self.get_llm(num_predict=300)
         tmpl = ChatPromptTemplate.from_messages([
@@ -89,8 +77,6 @@ class LLMChainFactory:
             ("human", "{input}"),
         ]).partial(intent_examples=prompt.INTENT_EXAMPLES)
         return tmpl | llm.with_structured_output(models.IntentOutput)
-
-
 
     def get_rag_info_chain(self):
         llm = self.get_llm()
