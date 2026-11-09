@@ -9,9 +9,6 @@ class LLMChainFactory:
     Fabbrica per l'inizializzazione modulare delle catene LangChain e dei client LLM.
     Evita istanziazioni globali incontrollate e consente la riconfigurazione dinamica.
     """
-
-
-
     def __init__(
         self,
         model_name: str = MODEL_NAME,
