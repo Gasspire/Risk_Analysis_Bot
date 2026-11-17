@@ -15,6 +15,7 @@ class IntentType(str, Enum):
     BATCH_ASSESSMENT = "batch_assessment"
     REEVALUATE_FILTERED = "reevaluate_filtered"
     DISCUSS_MODIFY = "discuss_modify"
+    ASSET_EXTRACT = "asset_extract"
     UNKNOWN = "unknown"
 
 

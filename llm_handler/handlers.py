@@ -315,6 +315,20 @@ def handle_reevaluate_filtered(
 
 
 
+def handle_asset_extract(
+    state: SessionStateData,
+) -> Tuple[str, SessionStateData]:
+    # STUB: asset extraction not implemented yet.
+    return (
+        "🚧 The asset extraction function is currently in development. "
+        "It will be available soon.",
+        state,
+    )
+
+
+
+
+
 def handle_discuss_modify(
     user_input: str,
     state: SessionStateData,

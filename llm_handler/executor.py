@@ -9,6 +9,7 @@ from llm_handler.handlers import (
     handle_batch_assessment,
     handle_reevaluate_filtered,
     handle_discuss_modify,
+    handle_asset_extract,
 )
 
 class RiskAgentExecutor:
@@ -88,6 +89,9 @@ class RiskAgentExecutor:
                 chain_factory=self.chain_factory,
                 entities=entities,
             )
+        elif intent == IntentType.ASSET_EXTRACT:
+            output_text, updated_state = handle_asset_extract(state=state)
+
         else:
             output_text = "Intent not recognized. Please reformulate your request."
             updated_state = state

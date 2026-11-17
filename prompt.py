@@ -391,6 +391,13 @@ Output: {
     }
 }
 
+Input: "Extract the assets from the smart hospital description."
+
+Output: {
+    "intent": "asset_extract",
+    "extracted_entities": {}
+}
+
 Input: "Hello, good morning!"
 
 Output: {
@@ -429,7 +436,10 @@ Classify the user input into EXACTLY one of the allowed intents based on these r
    - Use this when the user wants to discuss, ask explanations about, adjust, or manually override the scores of an already evaluated threat (e.g., "Why is likelihood 4 for Ransomware?", "Change impact of Phishing to 2", "Let's discuss threat X").
    - ALWAYS extract the threat name into 'threat_name'. Also extract 'target_parameter' ('likelihood' or 'impact') and 'suggested_score' if provided.
 
-6. 'unknown':
+6. 'asset_extract':
+   - Use this when the user asks to EXTRACT, LIST, or IDENTIFY the assets of a system, document, or infrastructure (e.g., "Extract the assets from this description", "List the assets of the smart hospital").
+
+7. 'unknown':
    - The prompt does not fit any of the above categories.
 
 {intent_examples}
