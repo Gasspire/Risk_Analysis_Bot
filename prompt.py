@@ -620,3 +620,59 @@ HUMAN_PROMPT_RAG_INFO = """KNOWLEDGE BASE CONTEXT:
 USER QUESTION:
 {user_input}
 """
+
+
+ASSET_EXTRACTION_EXAMPLES = """
+Input Clusters:
+Cluster 0: [server, domain controller, storage server, virtual server, enterprise]
+Cluster 1: [way, addition, time, level, example]
+Cluster 2: [mobile, phone, sim, lte, sim card, mobile app, cellular device]
+
+Output:
+{
+    "clusters_evaluation": [
+        {
+            "cluster_id": 0,
+            "contains_protectable_assets": true,
+            "extracted_assets": ["domain controller", "storage server", "virtual server"]
+        },
+        {
+            "cluster_id": 1,
+            "contains_protectable_assets": false,
+            "extracted_assets": []
+        },
+        {
+            "cluster_id": 2,
+            "contains_protectable_assets": true,
+            "extracted_assets": ["sim card", "mobile app", "cellular device"]
+        }
+    ]
+}
+"""
+
+
+ASSET_EXTRACTION_SYSTEM_PROMPT = """You are a cybersecurity risk assessment expert specializing in asset identification.
+
+You will receive a list of semantic clusters extracted from system architecture and operational documents. Each cluster contains a group of related nouns and noun phrases.
+
+Your task is to evaluate EVERY cluster in the input and populate `clusters_evaluation`:
+1. Determine whether the cluster contains PROTECTABLE ASSETS relevant to a cybersecurity and physical risk assessment.
+   - Protectable assets include: IT hardware (servers, workstations, laptops, routers, switches, gateways), IoT and medical/biometric devices (infusion pumps, monitors, MRI machines, sensors, mobile phones, tablets), software applications and platforms (EHR, web portals, telehealth platforms, firmware, databases), sensitive data and records (patient data, PII, biometric data, credentials), and critical networks/facilities (VLANs, enclaves, server rooms, data centers, routers/firewalls).
+   - Discard clusters that ONLY contain generic abstract nouns, actions, qualities, or narrative noise (e.g., "way", "time", "process", "task", "addition", "level", "example", "capability", "awareness").
+2. For each cluster that contains protectable assets (`contains_protectable_assets = true`), select ONLY the specific, complete asset names in `extracted_assets`:
+   - Prefer complete multi-word asset names (e.g., "sim card", "cellular device", "cisco firepower", "patient ehr") over fragmented single-word prefixes, adjectives, or standalone acronyms (DO NOT extract standalone fragments like "mobile", "cellular", "sim", "lte", "ftd", "id", "wi", "fi").
+   - Copy the selected terms accurately from the cluster WITHOUT altering their spelling or inventing typos.
+3. If a cluster does NOT contain protectable assets, set `contains_protectable_assets = false` and `extracted_assets = []`.
+
+EXAMPLE:
+{asset_extraction_examples}
+"""
+
+
+HUMAN_PROMPT_ASSET_EXTRACTION = """GENERAL SYSTEM CONTEXT:
+{general_context}
+
+SEMANTIC CLUSTERS TO EVALUATE:
+{clusters_text}
+"""
+

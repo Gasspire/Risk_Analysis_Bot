@@ -85,3 +85,11 @@ class LLMChainFactory:
             ("human", prompt.HUMAN_PROMPT_RAG_INFO),
         ])
         return tmpl | llm
+
+    def get_asset_extraction_chain(self):
+        llm = self.get_llm(num_predict=2048)
+        tmpl = ChatPromptTemplate.from_messages([
+            ("system", prompt.ASSET_EXTRACTION_SYSTEM_PROMPT),
+            ("human", prompt.HUMAN_PROMPT_ASSET_EXTRACTION),
+        ]).partial(asset_extraction_examples=prompt.ASSET_EXTRACTION_EXAMPLES)
+        return tmpl | llm.with_structured_output(models.AssetExtractionOutput)

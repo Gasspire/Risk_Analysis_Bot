@@ -9,6 +9,7 @@ from storage.chat_repository import ChatRepository
 from core.llm_chains import LLMChainFactory
 from core.rag_engine import RAGEngine
 from core.risk_analyzer import RiskAnalyzer
+from core.asset_extractor import AssetExtractor
 from llm_handler.executor import RiskAgentExecutor
 from llm_handler.formatting import get_risk_indicator
 
@@ -22,14 +23,16 @@ def get_services():
     chain_factory = LLMChainFactory()
     rag_engine = RAGEngine()
     risk_analyzer = RiskAnalyzer(chain_factory=chain_factory, rag_engine=rag_engine)
+    asset_extractor = AssetExtractor(chain_factory=chain_factory)
     agent_executor = RiskAgentExecutor(
         chain_factory=chain_factory,
         rag_engine=rag_engine,
         risk_analyzer=risk_analyzer,
+        asset_extractor=asset_extractor,
     )
-    return repository, chat_repository, rag_engine, risk_analyzer, agent_executor
+    return repository, chat_repository, rag_engine, risk_analyzer, asset_extractor, agent_executor
 
-repository, chat_repository, rag_engine, risk_analyzer, agent_executor = get_services()
+repository, chat_repository, rag_engine, risk_analyzer, asset_extractor, agent_executor = get_services()
 
 if "state_data" not in st.session_state:
     loaded_state = repository.load(default_context=DEFAULT_CONTEXT)
@@ -165,7 +168,7 @@ with st.sidebar:
         repository.save(state)
         st.rerun()
 
-    uploaded_rag = st.file_uploader("Carica documenti (Policy/Asset) per RAG", accept_multiple_files=True, type=["txt"])
+    uploaded_rag = st.file_uploader("Carica documenti (Policy/Standard) per RAG", accept_multiple_files=True, type=["txt"])
     if st.button("Aggiorna Contesto RAG"):
         with st.spinner("Indicizzazione..."):
             text_sources = [
@@ -177,6 +180,29 @@ with st.sidebar:
                 st.success(f"Aggiunti {added} segmenti.")
             else:
                 st.warning("Nessun documento processato.")
+
+    uploaded_sys_docs = st.file_uploader(
+        "Carica documenti di sistema per Estrazione Asset",
+        accept_multiple_files=True,
+        type=["txt", "md"],
+    )
+    if st.button("Salva Documenti Sistema"):
+        if uploaded_sys_docs:
+            sys_sources = [
+                {"content": f.read().decode("utf-8", errors="ignore"), "source_name": f.name}
+                for f in uploaded_sys_docs
+            ]
+            saved_files = asset_extractor.save_uploaded_documents(sys_sources)
+            if saved_files > 0:
+                st.success(f"Salvati {saved_files} documenti in system_documents/.")
+            else:
+                st.warning("Nessun documento valido trovato.")
+        else:
+            st.warning("Seleziona almeno un file prima di salvare.")
+
+    existing_sys_docs = asset_extractor.list_documents()
+    if existing_sys_docs:
+        st.caption(f"📄 Documenti sistema attivi ({len(existing_sys_docs)}): {', '.join(existing_sys_docs)}")
 
     st.divider()
     st.subheader("2. Regole di Valutazione")

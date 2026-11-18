@@ -85,3 +85,19 @@ class LikelihoodOutput(BaseModel):
 
 class SynthesisOutput(BaseModel):
     synthesized_reasoning: str = Field(description="A coherent, single reasoning of max 80 words that strictly justifies the provided Final Score, ignoring conflicting information.")
+
+
+class ClusterAssetEvaluation(BaseModel):
+    cluster_id: int = Field(description="The integer ID of the evaluated semantic cluster.")
+    contains_protectable_assets: bool = Field(
+        description="True if the cluster contains hardware, software, data, network, facility, or human/clinical assets that require protection in a risk assessment."
+    )
+    extracted_assets: List[str] = Field(
+        description="Clean, canonical names of the protectable assets identified within this cluster (empty list if contains_protectable_assets is False)."
+    )
+
+
+class AssetExtractionOutput(BaseModel):
+    clusters_evaluation: List[ClusterAssetEvaluation] = Field(
+        description="Non-empty list containing the evaluation for EVERY semantic cluster provided in the input."
+    )

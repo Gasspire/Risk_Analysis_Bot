@@ -1,8 +1,9 @@
-from typing import Tuple, cast
+from typing import Tuple, Optional, cast
 from models import SessionStateData, BotStateEnum, IntentOutput, IntentType
 from core.rag_engine import RAGEngine
 from core.risk_analyzer import RiskAnalyzer
 from core.llm_chains import LLMChainFactory
+from core.asset_extractor import AssetExtractor
 from llm_handler.handlers import (
     handle_rag_info,
     handle_single_threat_analysis,
@@ -22,10 +23,12 @@ class RiskAgentExecutor:
         chain_factory: LLMChainFactory,
         rag_engine: RAGEngine,
         risk_analyzer: RiskAnalyzer,
+        asset_extractor: Optional[AssetExtractor] = None,
     ):
         self.chain_factory = chain_factory
         self.rag_engine = rag_engine
         self.risk_analyzer = risk_analyzer
+        self.asset_extractor = asset_extractor or AssetExtractor(chain_factory=chain_factory)
         self.intent_chain = self.chain_factory.get_intent_chain()
 
 
@@ -90,7 +93,10 @@ class RiskAgentExecutor:
                 entities=entities,
             )
         elif intent == IntentType.ASSET_EXTRACT:
-            output_text, updated_state = handle_asset_extract(state=state)
+            output_text, updated_state = handle_asset_extract(
+                state=state,
+                asset_extractor=self.asset_extractor,
+            )
 
         else:
             output_text = "Intent not recognized. Please reformulate your request."

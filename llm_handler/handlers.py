@@ -6,6 +6,7 @@ from models import SessionStateData, ThreatRecord, BotStateEnum
 from core.risk_analyzer import RiskAnalyzer
 from core.rag_engine import RAGEngine
 from core.llm_chains import LLMChainFactory
+from core.asset_extractor import AssetExtractor
 from llm_handler.formatting import get_risk_indicator
 import prompt
 
@@ -317,13 +318,43 @@ def handle_reevaluate_filtered(
 
 def handle_asset_extract(
     state: SessionStateData,
+    asset_extractor: AssetExtractor,
 ) -> Tuple[str, SessionStateData]:
-    # STUB: asset extraction not implemented yet.
-    return (
-        "🚧 The asset extraction function is currently in development. "
-        "It will be available soon.",
-        state,
+    try:
+        res = asset_extractor.extract_assets_pipeline(
+            extra_text=state.general_context,
+            general_context=state.general_context,
+        )
+    except Exception as e:
+        return f"An error occurred during asset extraction: {e}", state
+
+    if res.candidate_terms_count == 0:
+        return (
+            "No system documents or general context found to extract assets from. "
+            "Please add system description files in `system_documents/` or fill in the General Context.",
+            state,
+        )
+
+    if not res.final_assets:
+        return (
+            f"Processed **{res.candidate_terms_count}** candidate terms across **{res.clusters_after_merge}** "
+            f"semantic clusters, but no protectable assets were selected.",
+            state,
+        )
+
+    assets_bullets = "\n".join(f"- **{asset}**" for asset in res.final_assets)
+    report = (
+        f"### Asset Extraction Completed\n\n"
+        f"**Pipeline Summary:**\n"
+        f"- 📝 **Candidate Nouns (spaCy):** {res.candidate_terms_count}\n"
+        f"- 🎯 **Optimal K-Means Clusters:** {res.optimal_k} *(Silhouette Score: {res.best_silhouette_score:.3f})*\n"
+        f"- 🔗 **Clusters after Cohesion & Merge:** {res.clusters_after_merge} *(Selected by LLM: {len(res.selected_clusters)})*\n"
+        f"- 🛡️ **Unique Protectable Assets Identified:** {len(res.final_assets)}\n\n"
+        f"---\n\n"
+        f"**Extracted Assets:**\n"
+        f"{assets_bullets}"
     )
+    return report, state
 
 
 
