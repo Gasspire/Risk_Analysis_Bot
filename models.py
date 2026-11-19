@@ -48,6 +48,7 @@ class SessionStateData(BaseModel):
     pending_threat: Optional[Dict[str, Optional[str]]] = None
     active_threat_id: Optional[str] = None
     assessment_results: List[ThreatRecord] = Field(default_factory=list)
+    extracted_assets: List[str] = Field(default_factory=list)
     chat_history: List[Dict[str, str]] = Field(default_factory=list)
     general_context: str = ""
     custom_rules_likelihood: str = ""

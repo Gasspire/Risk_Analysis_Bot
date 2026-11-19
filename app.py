@@ -227,7 +227,11 @@ with st.sidebar:
     )
 
 
-tab_chat, tab_dati = st.tabs(["Assistente Analisi (Chat)", "Report Minacce"])
+tab_chat, tab_dati, tab_assets = st.tabs([
+    "Assistente Analisi (Chat)",
+    "Report Minacce",
+    "Asset Estratti",
+])
 
 with tab_chat:
     col_info1, col_info2 = st.columns([8, 2])
@@ -327,3 +331,79 @@ with tab_dati:
                 repository.save(state)
                 st.success("Modifiche salvate con successo.")
                 st.rerun()
+
+with tab_assets:
+    st.subheader("🛡️ Lista Globale degli Asset Estratti")
+
+    col_act1, col_act2 = st.columns([6, 4])
+    with col_act1:
+        if st.button("🔍 Estrai Asset dai Documenti di Sistema"):
+            with st.spinner("Estrazione asset in corso (spaCy + K-Means + LLM)..."):
+                try:
+                    res = asset_extractor.extract_assets_pipeline(
+                        extra_text=state.general_context,
+                        general_context=state.general_context,
+                    )
+                    if res.final_assets:
+                        existing_lower = {a.lower() for a in state.extracted_assets}
+                        added_count = 0
+                        for asset in res.final_assets:
+                            if asset.lower() not in existing_lower:
+                                state.extracted_assets.append(asset)
+                                existing_lower.add(asset.lower())
+                                added_count += 1
+                        repository.save(state)
+                        st.success(f"Estrazione completata: {len(res.final_assets)} asset individuati ({added_count} nuovi aggiunti alla lista globale).")
+                        st.rerun()
+                    else:
+                        st.warning("Nessun asset rilevato nei documenti o nel contesto generale.")
+                except Exception as e:
+                    st.error(f"Errore durante l'estrazione: {e}")
+
+    with col_act2:
+        if state.extracted_assets:
+            if st.button("🗑️ Svuota Lista Asset"):
+                state.extracted_assets = []
+                repository.save(state)
+                st.rerun()
+
+    st.divider()
+
+    # Aggiunta manuale di un nuovo asset
+    add_col1, add_col2 = st.columns([8, 2])
+    with add_col1:
+        new_asset_input = st.text_input(
+            "Aggiungi manualmente un asset:",
+            placeholder="es. Active Directory Domain Controller",
+            label_visibility="collapsed",
+            key="manual_new_asset_input",
+        )
+    with add_col2:
+        if st.button("➕ Aggiungi Asset"):
+            clean_new = new_asset_input.strip() if new_asset_input else ""
+            if clean_new:
+                if clean_new.lower() not in {a.lower() for a in state.extracted_assets}:
+                    state.extracted_assets.append(clean_new)
+                    repository.save(state)
+                    st.rerun()
+                else:
+                    st.warning("Questo asset è già presente nella lista.")
+
+    if not state.extracted_assets:
+        st.info(
+            "Nessun asset presente nella lista globale. "
+            "Puoi estrarli chiedendolo in chat all'assistente oppure cliccando il pulsante qui sopra."
+        )
+    else:
+        st.caption(f"Totale asset censiti: **{len(state.extracted_assets)}**")
+
+        for idx, asset_name in enumerate(state.extracted_assets):
+            row_col1, row_col2 = st.columns([9, 1])
+            with row_col1:
+                st.markdown(f"**{idx + 1}.** `{asset_name}`")
+            with row_col2:
+                if st.button("❌", key=f"del_asset_{idx}", help=f"Rimuovi '{asset_name}'"):
+                    state.extracted_assets.pop(idx)
+                    repository.save(state)
+                    st.rerun()
+

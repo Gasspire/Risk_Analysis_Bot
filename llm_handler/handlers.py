@@ -342,6 +342,13 @@ def handle_asset_extract(
             state,
         )
 
+    # Unisce i nuovi asset estratti alla lista globale evitando duplicati case-insensitive
+    existing_lower = {a.lower() for a in state.extracted_assets}
+    for asset in res.final_assets:
+        if asset.lower() not in existing_lower:
+            state.extracted_assets.append(asset)
+            existing_lower.add(asset.lower())
+
     assets_bullets = "\n".join(f"- **{asset}**" for asset in res.final_assets)
     report = (
         f"### Asset Extraction Completed\n\n"
