@@ -391,7 +391,7 @@ Output: {
     }
 }
 
-Input: "Extract the assets from the smart hospital description."
+Input: "Extract the assets from the system documentation."
 
 Output: {
     "intent": "asset_extract",
@@ -437,7 +437,7 @@ Classify the user input into EXACTLY one of the allowed intents based on these r
    - ALWAYS extract the threat name into 'threat_name'. Also extract 'target_parameter' ('likelihood' or 'impact') and 'suggested_score' if provided.
 
 6. 'asset_extract':
-   - Use this when the user asks to EXTRACT, LIST, or IDENTIFY the assets of a system, document, or infrastructure (e.g., "Extract the assets from this description", "List the assets of the smart hospital").
+   - Use this when the user asks to EXTRACT, LIST, or IDENTIFY the assets of a system, document, or infrastructure (e.g., "Extract the assets from the documentation", "Identify the assets of the system").
 
 7. 'unknown':
    - The prompt does not fit any of the above categories.
@@ -656,12 +656,18 @@ ASSET_EXTRACTION_SYSTEM_PROMPT = """You are a cybersecurity risk assessment expe
 You will receive a list of semantic clusters extracted from system architecture and operational documents. Each cluster contains a group of related nouns and noun phrases.
 
 Your task is to evaluate EVERY cluster in the input and populate `clusters_evaluation`:
-1. Determine whether the cluster contains PROTECTABLE ASSETS relevant to a cybersecurity and physical risk assessment.
-   - Protectable assets include: IT hardware (servers, workstations, laptops, routers, switches, gateways), IoT and medical/biometric devices (infusion pumps, monitors, MRI machines, sensors, mobile phones, tablets), software applications and platforms (EHR, web portals, telehealth platforms, firmware, databases), sensitive data and records (patient data, PII, biometric data, credentials), and critical networks/facilities (VLANs, enclaves, server rooms, data centers, routers/firewalls).
-   - Discard clusters that ONLY contain generic abstract nouns, actions, qualities, or narrative noise (e.g., "way", "time", "process", "task", "addition", "level", "example", "capability", "awareness").
-2. For each cluster that contains protectable assets (`contains_protectable_assets = true`), select ONLY the specific, complete asset names in `extracted_assets`:
-   - Prefer complete multi-word asset names (e.g., "sim card", "cellular device", "cisco firepower", "patient ehr") over fragmented single-word prefixes, adjectives, or standalone acronyms (DO NOT extract standalone fragments like "mobile", "cellular", "sim", "lte", "ftd", "id", "wi", "fi").
-   - Copy the selected terms accurately from the cluster WITHOUT altering their spelling or inventing typos.
+1. Determine whether the cluster contains concrete PROTECTABLE ASSETS relevant to a cybersecurity and physical risk assessment.
+   - Protectable assets include:
+     a) IT & Network Hardware/Appliances: servers, domain controllers, workstations, laptops, routers, switches, access points, firewalls, gateways, security appliances, unmanaged/endpoint devices.
+     b) IoT, Embedded & Specialized Devices: sensors, monitors, actuators, controllers, smart devices, mobile phones, tablets, SIM cards, hardware modules.
+     c) Software, Cloud Platforms & Databases: applications, web portals, operating systems, firmware, cloud platforms, relational/operational databases, storage servers, SIEM and monitoring/scanning tools.
+     d) Sensitive Data & Credentials: personally identifiable information (PII), confidential records, telemetry/operational data, cryptographic keys, certificates, user credentials, device identifiers.
+     e) Critical Facilities & Network Zones: data centers, server rooms, physical facilities, VLANs, isolated network segments, secure enclaves.
+   - Discard clusters that ONLY contain abstract nouns, processes, organizational policies, regulations, actions, or generic narrative vocabulary (e.g., "way", "time", "process", "delivery", "traffic", "transit", "activity", "practice", "training", "accordance", "assessment", "analysis", "correlation").
+2. For each cluster that contains protectable assets (`contains_protectable_assets = true`), extract up to 8-10 of the specific, canonical asset names present in that cluster into `extracted_assets`:
+   - Be selective: pick all distinct, concrete assets present in the cluster (up to 10 per cluster), filtering out generic filler words.
+   - Prefer complete multi-word asset names (e.g., "domain controller", "storage server", "web portal", "network firewall") over vague single words (DO NOT extract vague single words like "system", "technology", "component", "equipment", "machine", "computer", "tool", "device", "data", "file", "record", "service", "application").
+   - Copy the selected terms accurately from the cluster WITHOUT altering their spelling.
 3. If a cluster does NOT contain protectable assets, set `contains_protectable_assets = false` and `extracted_assets = []`.
 
 EXAMPLE:
@@ -674,5 +680,56 @@ HUMAN_PROMPT_ASSET_EXTRACTION = """GENERAL SYSTEM CONTEXT:
 
 SEMANTIC CLUSTERS TO EVALUATE:
 {clusters_text}
+"""
+
+
+ASSET_DESCRIPTION_EXAMPLES = """
+Input Assets:
+- customer pii
+- perimeter firewall
+- application database
+
+Output:
+{
+    "assets": [
+        {
+            "name": "customer pii",
+            "description": "Personally Identifiable Information of users processed and stored by the platform, requiring confidentiality and regulatory protection."
+        },
+        {
+            "name": "perimeter firewall",
+            "description": "Network security appliance deployed at the boundary to segment internal VLAN zones and enforce access control policies."
+        },
+        {
+            "name": "application database",
+            "description": "Backend database server storing operational records, user transactions, and application state within the internal data zone."
+        }
+    ]
+}
+"""
+
+
+ASSET_DESCRIPTION_SYSTEM_PROMPT = """You are a cybersecurity and system architecture analyst.
+
+You will receive a list of extracted asset names together with the relevant excerpts from the system documentation.
+
+Your task is to generate a concise, accurate 1-2 sentence description (max 35 words) for EVERY asset in the input list, strictly grounded in the provided system documentation and general context:
+1. Keep the exact asset `name` as provided in the input list.
+2. In `description`, explain what the asset is and its specific role, location, or function within the described system architecture.
+3. Do NOT omit any asset from the input list.
+
+EXAMPLE:
+{asset_description_examples}
+"""
+
+
+HUMAN_PROMPT_ASSET_DESCRIPTION = """GENERAL SYSTEM CONTEXT:
+{general_context}
+
+RELEVANT SYSTEM DOCUMENTATION EXCERPTS:
+{document_context}
+
+ASSETS TO DESCRIBE:
+{assets_list}
 """
 

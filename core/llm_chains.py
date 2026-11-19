@@ -19,17 +19,25 @@ class LLMChainFactory:
         self.temperature = temperature
         self.base_url = base_url
 
-    def get_llm(self, num_predict: int = 800, json_format: bool = False) -> ChatOllama:
+    def get_llm(
+        self,
+        num_predict: int = 800,
+        json_format: bool = False,
+        temperature: float = None,
+        seed: int = None,
+    ) -> ChatOllama:
         """Crea un'istanza di ChatOllama configurata."""
         kwargs = {
             "model": self.model_name,
-            "temperature": self.temperature,
+            "temperature": self.temperature if temperature is None else temperature,
             "base_url": self.base_url,
             "num_ctx": 4096,
             "num_predict": num_predict,
         }
         if json_format:
             kwargs["format"] = "json"
+        if seed is not None:
+            kwargs["seed"] = seed
 
         return ChatOllama(**kwargs)
 
@@ -87,9 +95,17 @@ class LLMChainFactory:
         return tmpl | llm
 
     def get_asset_extraction_chain(self):
-        llm = self.get_llm(num_predict=2048)
+        llm = self.get_llm(num_predict=2048, temperature=0.0, seed=42)
         tmpl = ChatPromptTemplate.from_messages([
             ("system", prompt.ASSET_EXTRACTION_SYSTEM_PROMPT),
             ("human", prompt.HUMAN_PROMPT_ASSET_EXTRACTION),
         ]).partial(asset_extraction_examples=prompt.ASSET_EXTRACTION_EXAMPLES)
         return tmpl | llm.with_structured_output(models.AssetExtractionOutput)
+
+    def get_asset_description_chain(self):
+        llm = self.get_llm(num_predict=2048, temperature=0.0, seed=42)
+        tmpl = ChatPromptTemplate.from_messages([
+            ("system", prompt.ASSET_DESCRIPTION_SYSTEM_PROMPT),
+            ("human", prompt.HUMAN_PROMPT_ASSET_DESCRIPTION),
+        ]).partial(asset_description_examples=prompt.ASSET_DESCRIPTION_EXAMPLES)
+        return tmpl | llm.with_structured_output(models.AssetDescriptionsOutput)

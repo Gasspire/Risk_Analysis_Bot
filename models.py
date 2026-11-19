@@ -1,6 +1,6 @@
 from enum import Enum
 from typing import List, Dict, Any, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class BotStateEnum(str, Enum):
@@ -43,12 +43,20 @@ class ThreatRecord(BaseModel):
     impact_reasoning: str = "Da valutare."
 
 
+class ExtractedAssetRecord(BaseModel):
+    name: str = Field(description="The canonical name of the protectable asset.")
+    description: str = Field(
+        default="Descrizione non disponibile.",
+        description="A concise 1-2 sentence description of the asset's role and function based strictly on the system documents."
+    )
+
+
 class SessionStateData(BaseModel):
     bot_state: BotStateEnum = BotStateEnum.IDLE
     pending_threat: Optional[Dict[str, Optional[str]]] = None
     active_threat_id: Optional[str] = None
     assessment_results: List[ThreatRecord] = Field(default_factory=list)
-    extracted_assets: List[str] = Field(default_factory=list)
+    extracted_assets: List[ExtractedAssetRecord] = Field(default_factory=list)
     chat_history: List[Dict[str, str]] = Field(default_factory=list)
     general_context: str = ""
     custom_rules_likelihood: str = ""
@@ -101,4 +109,10 @@ class ClusterAssetEvaluation(BaseModel):
 class AssetExtractionOutput(BaseModel):
     clusters_evaluation: List[ClusterAssetEvaluation] = Field(
         description="Non-empty list containing the evaluation for EVERY semantic cluster provided in the input."
+    )
+
+
+class AssetDescriptionsOutput(BaseModel):
+    assets: List[ExtractedAssetRecord] = Field(
+        description="List containing each input asset name paired with its context-grounded description."
     )

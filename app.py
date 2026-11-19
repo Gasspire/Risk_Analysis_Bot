@@ -3,7 +3,7 @@ import uuid
 import streamlit as st
 
 from config import DEFAULT_CONTEXT
-from models import SessionStateData, ThreatRecord, BotStateEnum
+from models import SessionStateData, ThreatRecord, BotStateEnum, ExtractedAssetRecord
 from storage.session_repository import SessionRepository
 from storage.chat_repository import ChatRepository
 from core.llm_chains import LLMChainFactory
@@ -338,22 +338,25 @@ with tab_assets:
     col_act1, col_act2 = st.columns([6, 4])
     with col_act1:
         if st.button("🔍 Estrai Asset dai Documenti di Sistema"):
-            with st.spinner("Estrazione asset in corso (spaCy + K-Means + LLM)..."):
+            with st.spinner("Estrazione asset e generazione descrizioni in corso (spaCy + K-Means + LLM)..."):
                 try:
                     res = asset_extractor.extract_assets_pipeline(
                         extra_text=state.general_context,
                         general_context=state.general_context,
                     )
-                    if res.final_assets:
-                        existing_lower = {a.lower() for a in state.extracted_assets}
+                    if res.described_assets:
+                        existing_map = {a.name.lower(): a for a in state.extracted_assets}
                         added_count = 0
-                        for asset in res.final_assets:
-                            if asset.lower() not in existing_lower:
-                                state.extracted_assets.append(asset)
-                                existing_lower.add(asset.lower())
+                        for item in res.described_assets:
+                            key = item.name.lower()
+                            if key not in existing_map:
+                                state.extracted_assets.append(item)
+                                existing_map[key] = item
                                 added_count += 1
+                            elif existing_map[key].description in ("", "Descrizione non disponibile.") and item.description:
+                                existing_map[key].description = item.description
                         repository.save(state)
-                        st.success(f"Estrazione completata: {len(res.final_assets)} asset individuati ({added_count} nuovi aggiunti alla lista globale).")
+                        st.success(f"Estrazione completata: {len(res.described_assets)} asset individuati ({added_count} nuovi aggiunti alla lista globale).")
                         st.rerun()
                     else:
                         st.warning("Nessun asset rilevato nei documenti o nel contesto generale.")
@@ -369,21 +372,31 @@ with tab_assets:
 
     st.divider()
 
-    # Aggiunta manuale di un nuovo asset
-    add_col1, add_col2 = st.columns([8, 2])
+    # Aggiunta manuale di un nuovo asset con descrizione
+    add_col1, add_col2, add_col3 = st.columns([3, 5, 2])
     with add_col1:
         new_asset_input = st.text_input(
-            "Aggiungi manualmente un asset:",
-            placeholder="es. Active Directory Domain Controller",
+            "Nome Asset:",
+            placeholder="Nome asset (es. Domain Controller)",
             label_visibility="collapsed",
             key="manual_new_asset_input",
         )
     with add_col2:
+        new_asset_desc = st.text_input(
+            "Descrizione Asset:",
+            placeholder="Descrizione (opzionale)",
+            label_visibility="collapsed",
+            key="manual_new_asset_desc",
+        )
+    with add_col3:
         if st.button("➕ Aggiungi Asset"):
             clean_new = new_asset_input.strip() if new_asset_input else ""
+            clean_desc = new_asset_desc.strip() if new_asset_desc else "Aggiunto manualmente dall'analista."
             if clean_new:
-                if clean_new.lower() not in {a.lower() for a in state.extracted_assets}:
-                    state.extracted_assets.append(clean_new)
+                if clean_new.lower() not in {a.name.lower() for a in state.extracted_assets}:
+                    state.extracted_assets.append(
+                        ExtractedAssetRecord(name=clean_new, description=clean_desc)
+                    )
                     repository.save(state)
                     st.rerun()
                 else:
@@ -397,12 +410,12 @@ with tab_assets:
     else:
         st.caption(f"Totale asset censiti: **{len(state.extracted_assets)}**")
 
-        for idx, asset_name in enumerate(state.extracted_assets):
+        for idx, asset_rec in enumerate(state.extracted_assets):
             row_col1, row_col2 = st.columns([9, 1])
             with row_col1:
-                st.markdown(f"**{idx + 1}.** `{asset_name}`")
+                st.markdown(f"**{idx + 1}. `{asset_rec.name}`** — {asset_rec.description}")
             with row_col2:
-                if st.button("❌", key=f"del_asset_{idx}", help=f"Rimuovi '{asset_name}'"):
+                if st.button("❌", key=f"del_asset_{idx}", help=f"Rimuovi '{asset_rec.name}'"):
                     state.extracted_assets.pop(idx)
                     repository.save(state)
                     st.rerun()

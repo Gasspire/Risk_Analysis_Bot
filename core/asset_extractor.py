@@ -13,7 +13,12 @@ from sklearn.preprocessing import normalize
 
 from config import ASSET_DOCS_DIR, BASE_URL, EMBEDDING_MODEL
 from core.llm_chains import LLMChainFactory
-from models import AssetExtractionOutput, ClusterAssetEvaluation
+from models import (
+    AssetExtractionOutput,
+    ClusterAssetEvaluation,
+    ExtractedAssetRecord,
+    AssetDescriptionsOutput,
+)
 
 
 @dataclass
@@ -28,7 +33,7 @@ class SemanticCluster:
 
 @dataclass
 class AssetExtractionPipelineResult:
-    """Contiene i risultati completi e le metriche intermedie dell'intera pipeline (Step 1-8)."""
+    """Contiene i risultati completi e le metriche intermedie dell'intera pipeline (Step 1-8 + Descrizioni)."""
     candidate_terms_count: int = 0
     optimal_k: int = 0
     best_silhouette_score: float = 0.0
@@ -36,6 +41,7 @@ class AssetExtractionPipelineResult:
     clusters_after_merge: int = 0
     selected_clusters: List[ClusterAssetEvaluation] = field(default_factory=list)
     final_assets: List[str] = field(default_factory=list)
+    described_assets: List[ExtractedAssetRecord] = field(default_factory=list)
 
 
 class AssetExtractor:
@@ -163,20 +169,34 @@ class AssetExtractor:
                 seen.add(cleaned_lower) # aggiungiamo alla lista dei visti
                 candidates.append(cleaned_lower) # aggiungiamo ai candidati
 
+        def _clean_lemma(token) -> str:
+            raw_text = token.text.strip().lower()
+            lemma = token.lemma_.strip().lower()
+            # In inglese moderno "data" è usato come sostantivo invariabile (evita il latino "datum")
+            if raw_text == "data" or lemma == "datum":
+                return "data"
+            return lemma
+
         # 1. Estrazione sintagmi nominali composti (es. "infusion pump", "server room")
         chunk_words: set[str] = set()
         if include_noun_chunks:
             for chunk in doc.noun_chunks:
-                # Filtra i token interni al chunk (toglie determinanti/stopword/punteggiatura/verbi)
-                content_tokens = [
-                    t.lemma_.strip().lower()
-                    for t in chunk
+                raw_tokens = [
+                    t for t in chunk
                     if t.pos_ in ("NOUN", "PROPN", "ADJ")
                     and not t.is_stop
                     and not t.is_punct
                     and not t.is_space
                     and not t.like_num
                 ]
+                # Regola grammaticale inglese: in un noun chunk composto, un modificatore iniziale
+                # non può essere un sostantivo plurale (NNS, es. "Hosts clinical database", "Provides access").
+                # Quando spaCy trova un NNS seguito da altri token nel chunk, è un verbo alla 3a pers. sing. (VBZ) senza soggetto.
+                if len(raw_tokens) >= 2 and raw_tokens[0].tag_ == "NNS":
+                    raw_tokens = raw_tokens[1:]
+
+                content_tokens = [_clean_lemma(t) for t in raw_tokens]
+
                 # Aggiungiamo i chunk composti (2-4 parole) che terminano con un sostantivo
                 if 2 <= len(content_tokens) <= 4 and chunk.root.pos_ in ("NOUN", "PROPN"):
                     phrase = " ".join(content_tokens)
@@ -192,7 +212,7 @@ class AssetExtractor:
                 and not token.is_space
                 and not token.like_num
             ):
-                lemma = token.lemma_.strip().lower()
+                lemma = _clean_lemma(token)
                 # Scarta sigle/abbreviazioni corte (<= 3 caratteri) che sono già parte di un sintagma composto
                 if len(lemma) <= 3 and lemma in chunk_words:
                     continue
@@ -315,7 +335,7 @@ class AssetExtractor:
     def filter_clusters_by_cohesion(
         self,
         clusters: List[SemanticCluster],
-        min_cohesion: float = 0.50,
+        min_cohesion: float = 0.48,
         min_cluster_size: int = 2,
     ) -> List[SemanticCluster]:
         """
@@ -340,12 +360,13 @@ class AssetExtractor:
     def merge_similar_clusters(
         self,
         clusters: List[SemanticCluster],
-        max_centroid_similarity: float = 0.80,
+        max_centroid_similarity: float = 0.86,
+        max_merged_terms: int = 35,
     ) -> List[SemanticCluster]:
         """
         Calcola la cosine similarity tra i centroidi dei cluster e fonde in un unico
-        cluster quelli la cui similarità supera 'max_centroid_similarity'.
-        L'operazione viene ripetuta iterativamente finché nessuna coppia supera la soglia.
+        cluster quelli la cui similarità supera 'max_centroid_similarity'
+        (evitando l'effetto valanga grazie al limite 'max_merged_terms').
         """
         if len(clusters) < 2:
             return clusters
@@ -357,6 +378,13 @@ class AssetExtractor:
             sim_matrix = cosine_similarity(centroids)
             # Azzera la diagonale per cercare la coppia distinta più simile
             np.fill_diagonal(sim_matrix, -1.0)
+
+            # Escludiamo le coppie la cui fusione supererebbe max_merged_terms
+            for row_i in range(len(current)):
+                for col_j in range(row_i + 1, len(current)):
+                    if len(current[row_i].terms) + len(current[col_j].terms) > max_merged_terms:
+                        sim_matrix[row_i, col_j] = -1.0
+                        sim_matrix[col_j, row_i] = -1.0
 
             max_idx = int(np.argmax(sim_matrix))
             i, j = divmod(max_idx, len(current))
@@ -491,15 +519,109 @@ class AssetExtractor:
 
         return final_assets
 
+    @staticmethod
+    def _extract_relevant_snippets(
+        full_text: str,
+        batch_assets: List[str],
+        max_chars: int = 6000,
+    ) -> str:
+        """
+        Estrae dal testo completo i paragrafi/righe in cui compaiono gli asset del batch
+        (o le parole che li compongono), fornendo all'LLM il contesto esatto del documento.
+        """
+        if not full_text:
+            return "No document text provided."
+
+        paragraphs = [p.strip() for p in re.split(r"\n+", full_text) if p.strip()]
+        keywords: set[str] = set()
+        for asset in batch_assets:
+            keywords.add(asset.lower())
+            for w in asset.lower().split():
+                if len(w) > 3:
+                    keywords.add(w)
+
+        scored_paragraphs: List[Tuple[int, str]] = []
+        for p in paragraphs:
+            p_lower = p.lower()
+            hits = sum(1 for kw in keywords if kw in p_lower)
+            if hits > 0:
+                scored_paragraphs.append((hits, p))
+
+        scored_paragraphs.sort(key=lambda x: x[0], reverse=True)
+
+        selected: List[str] = []
+        total_len = 0
+        for _, p in scored_paragraphs:
+            if total_len + len(p) > max_chars:
+                break
+            selected.append(p)
+            total_len += len(p)
+
+        if not selected:
+            return full_text[:max_chars]
+
+        return "\n".join(selected)
+
+    def generate_asset_descriptions(
+        self,
+        assets: List[str],
+        full_text: str,
+        general_context: str = "",
+        batch_size: int = 15,
+    ) -> List[ExtractedAssetRecord]:
+        """
+        Genera una descrizione concisa (1-2 frasi) per ciascun asset estratto,
+        basandosi strettamente sui documenti di sistema forniti.
+        """
+        if not assets:
+            return []
+
+        chain = self.chain_factory.get_asset_description_chain()
+        described_map: Dict[str, str] = {}
+
+        for i in range(0, len(assets), batch_size):
+            batch = assets[i : i + batch_size]
+            snippets = self._extract_relevant_snippets(full_text, batch)
+            assets_list_str = "\n".join(f"- {a}" for a in batch)
+
+            try:
+                res: Optional[AssetDescriptionsOutput] = cast(
+                    Optional[AssetDescriptionsOutput],
+                    chain.invoke({
+                        "general_context": general_context or "None provided.",
+                        "document_context": snippets,
+                        "assets_list": assets_list_str,
+                    }),
+                )
+                if res and res.assets:
+                    for item in res.assets:
+                        if item.name and item.description:
+                            described_map[item.name.strip().lower()] = item.description.strip()
+            except Exception as e:
+                print(f"Errore generazione descrizioni batch {i}..{i + len(batch) - 1}: {e}")
+
+        records: List[ExtractedAssetRecord] = []
+        for asset_name in assets:
+            desc = described_map.get(asset_name.lower())
+            if not desc:
+                # Fallback se il nome restituito dall'LLM aveva una lieve differenza
+                desc = next(
+                    (v for k, v in described_map.items() if asset_name.lower() in k or k in asset_name.lower()),
+                    "Asset identified within the system architecture documentation.",
+                )
+            records.append(ExtractedAssetRecord(name=asset_name, description=desc))
+
+        return records
+
     def extract_assets_pipeline(
         self,
         extra_text: str = "",
         general_context: str = "",
         k_min: int = 2,
         k_max: Optional[int] = None,
-        min_cohesion: float = 0.50,
-        max_centroid_similarity: float = 0.80,
-        dedup_similarity_threshold: float = 0.88,
+        min_cohesion: float = 0.48,
+        max_centroid_similarity: float = 0.86,
+        dedup_similarity_threshold: float = 0.86,
     ) -> AssetExtractionPipelineResult:
         """
         Esegue l'intera pipeline di estrazione degli asset (Step 1 -> Step 8).
@@ -559,6 +681,13 @@ class AssetExtractor:
         result.final_assets = self.deduplicate_assets(
             assets=raw_assets,
             semantic_threshold=dedup_similarity_threshold,
+        )
+
+        # 9. Generazione delle descrizioni per ogni asset basandosi sul testo fornito
+        result.described_assets = self.generate_asset_descriptions(
+            assets=result.final_assets,
+            full_text=full_text,
+            general_context=general_context,
         )
 
         return result

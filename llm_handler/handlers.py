@@ -342,21 +342,26 @@ def handle_asset_extract(
             state,
         )
 
-    # Unisce i nuovi asset estratti alla lista globale evitando duplicati case-insensitive
-    existing_lower = {a.lower() for a in state.extracted_assets}
-    for asset in res.final_assets:
-        if asset.lower() not in existing_lower:
-            state.extracted_assets.append(asset)
-            existing_lower.add(asset.lower())
+    # Unisce i nuovi asset estratti (con descrizione) alla lista globale evitando duplicati case-insensitive
+    existing_map = {a.name.lower(): a for a in state.extracted_assets}
+    for item in res.described_assets:
+        key = item.name.lower()
+        if key not in existing_map:
+            state.extracted_assets.append(item)
+            existing_map[key] = item
+        elif existing_map[key].description in ("", "Descrizione non disponibile.") and item.description:
+            existing_map[key].description = item.description
 
-    assets_bullets = "\n".join(f"- **{asset}**" for asset in res.final_assets)
+    assets_bullets = "\n".join(
+        f"- **{item.name}**: {item.description}" for item in res.described_assets
+    )
     report = (
         f"### Asset Extraction Completed\n\n"
         f"**Pipeline Summary:**\n"
         f"- 📝 **Candidate Nouns (spaCy):** {res.candidate_terms_count}\n"
         f"- 🎯 **Optimal K-Means Clusters:** {res.optimal_k} *(Silhouette Score: {res.best_silhouette_score:.3f})*\n"
         f"- 🔗 **Clusters after Cohesion & Merge:** {res.clusters_after_merge} *(Selected by LLM: {len(res.selected_clusters)})*\n"
-        f"- 🛡️ **Unique Protectable Assets Identified:** {len(res.final_assets)}\n\n"
+        f"- 🛡️ **Unique Protectable Assets Identified:** {len(res.described_assets)}\n\n"
         f"---\n\n"
         f"**Extracted Assets:**\n"
         f"{assets_bullets}"
