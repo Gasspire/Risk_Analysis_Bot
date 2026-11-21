@@ -11,8 +11,6 @@ from llm_handler.formatting import get_risk_indicator
 import prompt
 
 
-
-
 def handle_rag_info(
     user_input: str,
     state: SessionStateData,
@@ -24,18 +22,17 @@ def handle_rag_info(
     chain = chain_factory.get_rag_info_chain()
 
     try:
-        response = chain.invoke({
-            "general_context": state.general_context or "None provided.",
-            "rag_context": rag_context,
-            "user_input": user_input,
-        })
+        response = chain.invoke(
+            {
+                "general_context": state.general_context or "None provided.",
+                "rag_context": rag_context,
+                "user_input": user_input,
+            }
+        )
         return str(response.content), state
 
     except Exception as e:
         return f"An error occurred while querying the knowledge base: {e}", state
-
-
-
 
 
 def handle_single_threat_analysis(
@@ -47,9 +44,9 @@ def handle_single_threat_analysis(
 ) -> Tuple[str, SessionStateData]:
 
     pending = state.pending_threat or {}
-    
+
     current_threat = pending.get("threat") or entities.get("threat")
-    
+
     current_assets = (
         pending.get("affected_assets")
         or entities.get("affected_assets")
@@ -64,21 +61,25 @@ def handle_single_threat_analysis(
 
     llm_json = chain_factory.get_llm(json_format=True)
 
-    extractor_prompt = ChatPromptTemplate.from_messages([
-        ("system", prompt.STATE_EXTRACTOR_PROMPT),
-        ("human", "{input}"),
-    ])
+    extractor_prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", prompt.STATE_EXTRACTOR_PROMPT),
+            ("human", "{input}"),
+        ]
+    )
 
     chain = extractor_prompt | llm_json | JsonOutputParser()
 
     extracted_state = {}
     try:
-        res = chain.invoke({
-            "current_threat": current_threat or "null",
-            "current_assets": current_assets or "null",
-            "current_measures": current_measures or "null",
-            "input": user_input,
-        })
+        res = chain.invoke(
+            {
+                "current_threat": current_threat or "null",
+                "current_assets": current_assets or "null",
+                "current_measures": current_measures or "null",
+                "input": user_input,
+            }
+        )
 
         if isinstance(res, dict):
             extracted_state = res
@@ -86,17 +87,26 @@ def handle_single_threat_analysis(
     except Exception as e:
         print(f"Errore estrazione JSON: {e}")
 
-
-
     threat = extracted_state.get("threat") or current_threat
     assets = extracted_state.get("affected_assets") or current_assets
     measures = extracted_state.get("security_measures") or current_measures
 
-
     # Pulizia stringhe
-    threat = threat.strip() if isinstance(threat, str) and threat.strip() and threat.lower() != "null" else None
-    assets = assets.strip() if isinstance(assets, str) and assets.strip() and assets.lower() != "null" else None
-    measures = measures.strip() if isinstance(measures, str) and measures.strip() and measures.lower() != "null" else None
+    threat = (
+        threat.strip()
+        if isinstance(threat, str) and threat.strip() and threat.lower() != "null"
+        else None
+    )
+    assets = (
+        assets.strip()
+        if isinstance(assets, str) and assets.strip() and assets.lower() != "null"
+        else None
+    )
+    measures = (
+        measures.strip()
+        if isinstance(measures, str) and measures.strip() and measures.lower() != "null"
+        else None
+    )
 
     # Aggiornamento stato pendente
 
@@ -106,8 +116,6 @@ def handle_single_threat_analysis(
         "security_measures": measures,
     }
 
-
-
     missing_fields = []
     if not threat:
         missing_fields.append("threat (`threat`)")
@@ -115,8 +123,6 @@ def handle_single_threat_analysis(
         missing_fields.append("affected assets (`affected_assets`)")
     if not measures:
         missing_fields.append("security measures (`security_measures`)")
-
-
 
     if missing_fields:
         state.bot_state = BotStateEnum.AWAITING_THREAT_DETAILS
@@ -139,8 +145,6 @@ def handle_single_threat_analysis(
         affected_assets=assets,
         security_measures=measures,
     )
-
-
 
     evaluated_record = risk_analyzer.evaluate_single_threat(
         record=record,
@@ -171,9 +175,6 @@ def handle_single_threat_analysis(
     return report, state
 
 
-
-
-
 def handle_batch_assessment(
     state: SessionStateData,
     risk_analyzer: RiskAnalyzer,
@@ -193,13 +194,13 @@ def handle_batch_assessment(
         num_iterations=state.num_iterations,
     )
 
-
-
     summary_lines = [
         f"### Batch Assessment Completed ({len(state.assessment_results)} threats processed)\n"
     ]
 
-    sorted_threats = sorted(state.assessment_results, key=lambda x: x.risk_factor, reverse=True)
+    sorted_threats = sorted(
+        state.assessment_results, key=lambda x: x.risk_factor, reverse=True
+    )
 
     for record in sorted_threats:
         icon, label = get_risk_indicator(record.risk_factor)
@@ -207,9 +208,6 @@ def handle_batch_assessment(
             f"- {icon} **{record.threat}** | Likelihood: {record.likelihood}/5 | Impact: {record.impact}/5 | **Risk Factor: {record.risk_factor}/25 ({label})**"
         )
     return "\n".join(summary_lines), state
-
-
-
 
 
 def handle_reevaluate_filtered(
@@ -246,7 +244,10 @@ def handle_reevaluate_filtered(
         matched_records = [
             r
             for r in state.assessment_results
-            if any(k in r.affected_assets.lower() or k in r.threat.lower() for k in keywords)
+            if any(
+                k in r.affected_assets.lower() or k in r.threat.lower()
+                for k in keywords
+            )
         ]
 
     # 2. Filter by numeric conditions (e.g. impact > 3, likelihood >= 4)
@@ -259,29 +260,42 @@ def handle_reevaluate_filtered(
 
         if "impact" in cond_lower:
             if ">" in cond_lower:
-                matched_records = [r for r in state.assessment_results if r.impact > thresh]
+                matched_records = [
+                    r for r in state.assessment_results if r.impact > thresh
+                ]
             elif "<" in cond_lower:
-                matched_records = [r for r in state.assessment_results if r.impact < thresh]
+                matched_records = [
+                    r for r in state.assessment_results if r.impact < thresh
+                ]
             else:
-                matched_records = [r for r in state.assessment_results if r.impact >= thresh]
+                matched_records = [
+                    r for r in state.assessment_results if r.impact >= thresh
+                ]
 
         elif "likelihood" in cond_lower:
             if ">" in cond_lower:
-                matched_records = [r for r in state.assessment_results if r.likelihood > thresh]
+                matched_records = [
+                    r for r in state.assessment_results if r.likelihood > thresh
+                ]
 
             elif "<" in cond_lower:
-                matched_records = [r for r in state.assessment_results if r.likelihood < thresh]
+                matched_records = [
+                    r for r in state.assessment_results if r.likelihood < thresh
+                ]
 
             else:
-                matched_records = [r for r in state.assessment_results if r.likelihood >= thresh]
-
-
+                matched_records = [
+                    r for r in state.assessment_results if r.likelihood >= thresh
+                ]
 
     # 3. Fallback: match threat or asset name in user_input
 
     if not matched_records and user_input:
         for r in state.assessment_results:
-            if r.threat.lower() in user_input.lower() or r.affected_assets.lower() in user_input.lower():
+            if (
+                r.threat.lower() in user_input.lower()
+                or r.affected_assets.lower() in user_input.lower()
+            ):
                 matched_records.append(r)
     # 4. If no specific filter matched, re-evaluate all
 
@@ -297,9 +311,9 @@ def handle_reevaluate_filtered(
     )
 
     subset_map = {r.id: r for r in updated_subset}
-    state.assessment_results = [subset_map.get(r.id, r) for r in state.assessment_results]
-
-
+    state.assessment_results = [
+        subset_map.get(r.id, r) for r in state.assessment_results
+    ]
 
     summary_lines = [
         f"### Re-evaluation Completed ({len(updated_subset)} threats re-assessed)\n"
@@ -311,9 +325,6 @@ def handle_reevaluate_filtered(
             f"- {icon} **{record.threat}** | Likelihood: {record.likelihood}/5 | Impact: {record.impact}/5 | **Risk Factor: {record.risk_factor}/25 ({label})**"
         )
     return "\n".join(summary_lines), state
-
-
-
 
 
 def handle_asset_extract(
@@ -349,7 +360,10 @@ def handle_asset_extract(
         if key not in existing_map:
             state.extracted_assets.append(item)
             existing_map[key] = item
-        elif existing_map[key].description in ("", "Descrizione non disponibile.") and item.description:
+        elif (
+            existing_map[key].description in ("", "Descrizione non disponibile.")
+            and item.description
+        ):
             existing_map[key].description = item.description
 
     assets_bullets = "\n".join(
@@ -369,21 +383,20 @@ def handle_asset_extract(
     return report, state
 
 
-
-
-
 def handle_discuss_modify(
     user_input: str,
     state: SessionStateData,
     chain_factory: LLMChainFactory,
     entities: Dict[str, Any],
 ) -> Tuple[str, SessionStateData]:
-    
+
     active_id = state.active_threat_id
     target_record: Optional[ThreatRecord] = None
 
     if active_id:
-        target_record = next((r for r in state.assessment_results if r.id == active_id), None)
+        target_record = next(
+            (r for r in state.assessment_results if r.id == active_id), None
+        )
 
     if not target_record:
         if not state.assessment_results:
@@ -399,12 +412,17 @@ def handle_discuss_modify(
             or entities.get("target_record")
             or ""
         )
-        clean_term = search_term.strip(' \'\".,;:!?').lower() if isinstance(search_term, str) else ""
+        clean_term = (
+            search_term.strip(" '\".,;:!?").lower()
+            if isinstance(search_term, str)
+            else ""
+        )
         # 1. Exact or bidirectional substring match on clean_term
         if clean_term:
             target_record = next(
                 (
-                    r for r in state.assessment_results
+                    r
+                    for r in state.assessment_results
                     if clean_term in r.threat.lower() or r.threat.lower() in clean_term
                 ),
                 None,
@@ -414,16 +432,21 @@ def handle_discuss_modify(
 
             if not target_record:
                 sig_words = [
-                    w for w in clean_term.split()
-                    if len(w) > 3 and w not in ["threat", "attack", "risk", "minaccia", "attacco"]
+                    w
+                    for w in clean_term.split()
+                    if len(w) > 3
+                    and w not in ["threat", "attack", "risk", "minaccia", "attacco"]
                 ]
 
                 if sig_words:
                     target_record = next(
-                        (r for r in state.assessment_results if any(w in r.threat.lower() for w in sig_words)),
+                        (
+                            r
+                            for r in state.assessment_results
+                            if any(w in r.threat.lower() for w in sig_words)
+                        ),
                         None,
                     )
-
 
         # 3. Fallback: match directly against user_input
 
@@ -437,14 +460,14 @@ def handle_discuss_modify(
             if not target_record:
                 for r in state.assessment_results:
                     sig_words = [
-                        w for w in r.threat.lower().split()
-                        if len(w) > 3 and w not in ["threat", "attack", "risk", "minaccia", "attacco"]
+                        w
+                        for w in r.threat.lower().split()
+                        if len(w) > 3
+                        and w not in ["threat", "attack", "risk", "minaccia", "attacco"]
                     ]
                     if sig_words and any(w in user_input_lower for w in sig_words):
                         target_record = r
                         break
-
-
 
         if not target_record:
             available = ", ".join(f"'{r.threat}'" for r in state.assessment_results[:5])
@@ -459,36 +482,38 @@ def handle_discuss_modify(
         state.active_threat_id = target_record.id
         state.bot_state = BotStateEnum.DISCUSSING_THREAT
 
-
-
     icon, label = get_risk_indicator(target_record.risk_factor)
 
     llm_json = chain_factory.get_llm(json_format=True)
 
-    prompt_tmpl = ChatPromptTemplate.from_messages([
-        ("system", prompt.DISCUSS_MODIFY_PROMPT),
-        ("human", "{input}"),
-    ])
+    prompt_tmpl = ChatPromptTemplate.from_messages(
+        [
+            ("system", prompt.DISCUSS_MODIFY_PROMPT),
+            ("human", "{input}"),
+        ]
+    )
 
     chain = prompt_tmpl | llm_json | JsonOutputParser()
 
     parsed_res = {}
 
     try:
-        res = chain.invoke({
-            "threat": target_record.threat,
-            "affected_assets": target_record.affected_assets,
-            "security_measures": target_record.security_measures,
-            "preventive_measures": target_record.preventive_measures,
-            "mitigative_measures": target_record.mitigative_measures,
-            "likelihood": target_record.likelihood,
-            "likelihood_reasoning": target_record.likelihood_reasoning,
-            "impact": target_record.impact,
-            "impact_reasoning": target_record.impact_reasoning,
-            "risk_factor": target_record.risk_factor,
-            "risk_label": label,
-            "input": user_input,
-        })
+        res = chain.invoke(
+            {
+                "threat": target_record.threat,
+                "affected_assets": target_record.affected_assets,
+                "security_measures": target_record.security_measures,
+                "preventive_measures": target_record.preventive_measures,
+                "mitigative_measures": target_record.mitigative_measures,
+                "likelihood": target_record.likelihood,
+                "likelihood_reasoning": target_record.likelihood_reasoning,
+                "impact": target_record.impact,
+                "impact_reasoning": target_record.impact_reasoning,
+                "risk_factor": target_record.risk_factor,
+                "risk_label": label,
+                "input": user_input,
+            }
+        )
 
         if isinstance(res, dict):
             parsed_res = res
@@ -502,9 +527,6 @@ def handle_discuss_modify(
     updated_i_reason = parsed_res.get("updated_impact_reasoning")
     is_finished = parsed_res.get("is_finished", False)
     response_text = parsed_res.get("response_text", "")
-
-
-
 
     if updated_l is None and entities.get("target_parameter") == "likelihood":
         val = entities.get("suggested_score")
@@ -521,15 +543,13 @@ def handle_discuss_modify(
 
     if isinstance(updated_i, int) and 1 <= updated_i <= 5:
         target_record.impact = updated_i
-    
+
     target_record.risk_factor = target_record.likelihood * target_record.impact
 
     if isinstance(updated_l_reason, str) and updated_l_reason.strip():
         target_record.likelihood_reasoning = updated_l_reason.strip()
     if isinstance(updated_i_reason, str) and updated_i_reason.strip():
         target_record.impact_reasoning = updated_i_reason.strip()
-
-
 
     if is_finished:
         state.active_threat_id = None
@@ -554,4 +574,3 @@ def handle_discuss_modify(
         )
 
     return response_text, state
-

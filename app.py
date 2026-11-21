@@ -16,6 +16,7 @@ from llm_handler.formatting import get_risk_indicator
 
 st.set_page_config(page_title="Risk Assessment Copilot", layout="wide")
 
+
 @st.cache_resource
 def get_services():
     repository = SessionRepository()
@@ -30,9 +31,24 @@ def get_services():
         risk_analyzer=risk_analyzer,
         asset_extractor=asset_extractor,
     )
-    return repository, chat_repository, rag_engine, risk_analyzer, asset_extractor, agent_executor
+    return (
+        repository,
+        chat_repository,
+        rag_engine,
+        risk_analyzer,
+        asset_extractor,
+        agent_executor,
+    )
 
-repository, chat_repository, rag_engine, risk_analyzer, asset_extractor, agent_executor = get_services()
+
+(
+    repository,
+    chat_repository,
+    rag_engine,
+    risk_analyzer,
+    asset_extractor,
+    agent_executor,
+) = get_services()
 
 if "state_data" not in st.session_state:
     loaded_state = repository.load(default_context=DEFAULT_CONTEXT)
@@ -51,15 +67,20 @@ if not available_chats:
         initial_name = chat_repository.create_chat("Chat_1")
         available_chats = [initial_name]
 
-if "current_chat" not in st.session_state or st.session_state.current_chat not in available_chats:
+if (
+    "current_chat" not in st.session_state
+    or st.session_state.current_chat not in available_chats
+):
     st.session_state.current_chat = available_chats[0]
     state.chat_history = chat_repository.load_chat(st.session_state.current_chat)
+
 
 def refresh_conversational_context(target_state: SessionStateData):
     """Refresha il contesto conversazionale: azzera stato bot e minacce pendenti (Opzione A)."""
     target_state.pending_threat = None
     target_state.active_threat_id = None
     target_state.bot_state = BotStateEnum.IDLE
+
 
 st.title("Risk Assessment Copilot")
 
@@ -97,8 +118,13 @@ with st.sidebar:
             )
         with rename_col2:
             if st.button("Salva", help="Salva il nuovo nome per questa chat"):
-                if new_chat_title.strip() and new_chat_title.strip() != st.session_state.current_chat:
-                    ok, res = chat_repository.rename_chat(st.session_state.current_chat, new_chat_title.strip())
+                if (
+                    new_chat_title.strip()
+                    and new_chat_title.strip() != st.session_state.current_chat
+                ):
+                    ok, res = chat_repository.rename_chat(
+                        st.session_state.current_chat, new_chat_title.strip()
+                    )
                     if ok:
                         st.session_state.current_chat = res
                         st.rerun()
@@ -116,7 +142,9 @@ with st.sidebar:
         )
     with new_chat_col2:
         if st.button("➕ Crea", help="Crea una nuova chat e refresha il contesto"):
-            new_name = chat_repository.create_chat(new_chat_name_input.strip() if new_chat_name_input else None)
+            new_name = chat_repository.create_chat(
+                new_chat_name_input.strip() if new_chat_name_input else None
+            )
             st.session_state.current_chat = new_name
             state.chat_history = []
             refresh_conversational_context(state)
@@ -124,7 +152,10 @@ with st.sidebar:
             st.rerun()
 
     if len(available_chats) > 1:
-        if st.button("🗑️ Elimina Chat Selezionata", help=f"Elimina definitivamente '{st.session_state.current_chat}'"):
+        if st.button(
+            "🗑️ Elimina Chat Selezionata",
+            help=f"Elimina definitivamente '{st.session_state.current_chat}'",
+        ):
             chat_repository.delete_chat(st.session_state.current_chat)
             remaining = chat_repository.list_chats()
             if not remaining:
@@ -140,7 +171,9 @@ with st.sidebar:
     st.header("🛠️ Configurazione Assessment")
     st.subheader("1. Setup Iniziale")
 
-    new_context = st.text_area("Contesto Generale:", value=state.general_context, height=150)
+    new_context = st.text_area(
+        "Contesto Generale:", value=state.general_context, height=150
+    )
     if new_context != state.general_context:
         state.general_context = new_context
         repository.save(state)
@@ -155,8 +188,12 @@ with st.sidebar:
                 threat=t.get("threat", "Senza nome"),
                 affected_assets=t.get("affected_assets", "N/D"),
                 security_measures=t.get("security_measures", "N/D"),
-                preventive_measures=t.get("preventive_measures", "Non ancora classificate"),
-                mitigative_measures=t.get("mitigative_measures", "Non ancora classificate"),
+                preventive_measures=t.get(
+                    "preventive_measures", "Non ancora classificate"
+                ),
+                mitigative_measures=t.get(
+                    "mitigative_measures", "Non ancora classificate"
+                ),
                 likelihood=t.get("likelihood", 1),
                 impact=t.get("impact", 1),
                 risk_factor=t.get("risk_factor", 1),
@@ -168,7 +205,11 @@ with st.sidebar:
         repository.save(state)
         st.rerun()
 
-    uploaded_rag = st.file_uploader("Carica documenti (Policy/Standard) per RAG", accept_multiple_files=True, type=["txt"])
+    uploaded_rag = st.file_uploader(
+        "Carica documenti (Policy/Standard) per RAG",
+        accept_multiple_files=True,
+        type=["txt"],
+    )
     if st.button("Aggiorna Contesto RAG"):
         with st.spinner("Indicizzazione..."):
             text_sources = [
@@ -189,7 +230,10 @@ with st.sidebar:
     if st.button("Salva Documenti Sistema"):
         if uploaded_sys_docs:
             sys_sources = [
-                {"content": f.read().decode("utf-8", errors="ignore"), "source_name": f.name}
+                {
+                    "content": f.read().decode("utf-8", errors="ignore"),
+                    "source_name": f.name,
+                }
                 for f in uploaded_sys_docs
             ]
             saved_files = asset_extractor.save_uploaded_documents(sys_sources)
@@ -202,16 +246,22 @@ with st.sidebar:
 
     existing_sys_docs = asset_extractor.list_documents()
     if existing_sys_docs:
-        st.caption(f"📄 Documenti sistema attivi ({len(existing_sys_docs)}): {', '.join(existing_sys_docs)}")
+        st.caption(
+            f"📄 Documenti sistema attivi ({len(existing_sys_docs)}): {', '.join(existing_sys_docs)}"
+        )
 
     st.divider()
     st.subheader("2. Regole di Valutazione")
-    new_rules_l = st.text_area("Regole Likelihood:", value=state.custom_rules_likelihood, height=100)
+    new_rules_l = st.text_area(
+        "Regole Likelihood:", value=state.custom_rules_likelihood, height=100
+    )
     if new_rules_l != state.custom_rules_likelihood:
         state.custom_rules_likelihood = new_rules_l
         repository.save(state)
 
-    new_rules_i = st.text_area("Regole Impact:", value=state.custom_rules_impact, height=100)
+    new_rules_i = st.text_area(
+        "Regole Impact:", value=state.custom_rules_impact, height=100
+    )
     if new_rules_i != state.custom_rules_impact:
         state.custom_rules_impact = new_rules_i
         repository.save(state)
@@ -223,22 +273,29 @@ with st.sidebar:
         min_value=1,
         max_value=10,
         value=state.num_iterations,
-        help="Se >1 calcola la moda statistica dei punteggi."
+        help="Se >1 calcola la moda statistica dei punteggi.",
     )
 
 
-tab_chat, tab_dati, tab_assets = st.tabs([
-    "Assistente Analisi (Chat)",
-    "Report Minacce",
-    "Asset Estratti",
-])
+tab_chat, tab_dati, tab_assets = st.tabs(
+    [
+        "Assistente Analisi (Chat)",
+        "Report Minacce",
+        "Asset Estratti",
+    ]
+)
 
 with tab_chat:
     col_info1, col_info2 = st.columns([8, 2])
     with col_info1:
-        st.caption(f"📁 Chat attiva: **{st.session_state.current_chat}** ({len(state.chat_history)} messaggi)")
+        st.caption(
+            f"📁 Chat attiva: **{st.session_state.current_chat}** ({len(state.chat_history)} messaggi)"
+        )
     with col_info2:
-        if st.button("🔄 Svuota Chat", help="Svuota i messaggi della chat attiva e refresha lo stato conversazionale"):
+        if st.button(
+            "🔄 Svuota Chat",
+            help="Svuota i messaggi della chat attiva e refresha lo stato conversazionale",
+        ):
             state.chat_history = []
             refresh_conversational_context(state)
             chat_repository.save_chat(st.session_state.current_chat, [])
@@ -256,12 +313,13 @@ with tab_chat:
         with st.chat_message("assistant"):
             with st.spinner("Elaborazione in corso..."):
                 output_text, updated_state = agent_executor.process_message(
-                    user_input=prompt_input,
-                    state=state
+                    user_input=prompt_input, state=state
                 )
                 st.session_state.state_data = updated_state
                 # Salva sia sul file della chat attiva che sul repository globale
-                chat_repository.save_chat(st.session_state.current_chat, updated_state.chat_history)
+                chat_repository.save_chat(
+                    st.session_state.current_chat, updated_state.chat_history
+                )
                 repository.save(updated_state)
                 st.markdown(output_text)
 
@@ -285,21 +343,31 @@ with tab_dati:
                 st.rerun()
 
         st.subheader("Elenco Minacce e Valutazioni")
-        
+
         with st.form("manual_override_form"):
             submitted = st.form_submit_button("💾 Salva e applica modifiche manuali")
-            
-            sorted_threats = sorted(state.assessment_results, key=lambda x: x.risk_factor, reverse=True)
+
+            sorted_threats = sorted(
+                state.assessment_results, key=lambda x: x.risk_factor, reverse=True
+            )
 
             for record in sorted_threats:
                 icon, label = get_risk_indicator(record.risk_factor)
-                with st.expander(f"{icon} {record.threat} | {label} (Risk Factor: {record.risk_factor})"):
+                with st.expander(
+                    f"{icon} {record.threat} | {label} (Risk Factor: {record.risk_factor})"
+                ):
                     col1, col2 = st.columns([7, 3])
                     with col1:
                         st.markdown(f"**Asset Coinvolti:** {record.affected_assets}")
-                        st.markdown(f"**Misure di Sicurezza Totali:** {record.security_measures}")
-                        st.markdown(f"- 🛡️ **Misure Preventive:** {record.preventive_measures}")
-                        st.markdown(f"- 🩹 **Misure Mitigative:** {record.mitigative_measures}")
+                        st.markdown(
+                            f"**Misure di Sicurezza Totali:** {record.security_measures}"
+                        )
+                        st.markdown(
+                            f"- 🛡️ **Misure Preventive:** {record.preventive_measures}"
+                        )
+                        st.markdown(
+                            f"- 🩹 **Misure Mitigative:** {record.mitigative_measures}"
+                        )
                         st.markdown("---")
                         st.markdown("**Ragionamento Likelihood:**")
                         st.write(record.likelihood_reasoning)
@@ -338,14 +406,18 @@ with tab_assets:
     col_act1, col_act2 = st.columns([6, 4])
     with col_act1:
         if st.button("🔍 Estrai Asset dai Documenti di Sistema"):
-            with st.spinner("Estrazione asset e generazione descrizioni in corso (spaCy + K-Means + LLM)..."):
+            with st.spinner(
+                "Estrazione asset e generazione descrizioni in corso (spaCy + K-Means + LLM)..."
+            ):
                 try:
                     res = asset_extractor.extract_assets_pipeline(
                         extra_text=state.general_context,
                         general_context=state.general_context,
                     )
                     if res.described_assets:
-                        existing_map = {a.name.lower(): a for a in state.extracted_assets}
+                        existing_map = {
+                            a.name.lower(): a for a in state.extracted_assets
+                        }
                         added_count = 0
                         for item in res.described_assets:
                             key = item.name.lower()
@@ -353,13 +425,21 @@ with tab_assets:
                                 state.extracted_assets.append(item)
                                 existing_map[key] = item
                                 added_count += 1
-                            elif existing_map[key].description in ("", "Descrizione non disponibile.") and item.description:
+                            elif (
+                                existing_map[key].description
+                                in ("", "Descrizione non disponibile.")
+                                and item.description
+                            ):
                                 existing_map[key].description = item.description
                         repository.save(state)
-                        st.success(f"Estrazione completata: {len(res.described_assets)} asset individuati ({added_count} nuovi aggiunti alla lista globale).")
+                        st.success(
+                            f"Estrazione completata: {len(res.described_assets)} asset individuati ({added_count} nuovi aggiunti alla lista globale)."
+                        )
                         st.rerun()
                     else:
-                        st.warning("Nessun asset rilevato nei documenti o nel contesto generale.")
+                        st.warning(
+                            "Nessun asset rilevato nei documenti o nel contesto generale."
+                        )
                 except Exception as e:
                     st.error(f"Errore durante l'estrazione: {e}")
 
@@ -391,9 +471,15 @@ with tab_assets:
     with add_col3:
         if st.button("➕ Aggiungi Asset"):
             clean_new = new_asset_input.strip() if new_asset_input else ""
-            clean_desc = new_asset_desc.strip() if new_asset_desc else "Aggiunto manualmente dall'analista."
+            clean_desc = (
+                new_asset_desc.strip()
+                if new_asset_desc
+                else "Aggiunto manualmente dall'analista."
+            )
             if clean_new:
-                if clean_new.lower() not in {a.name.lower() for a in state.extracted_assets}:
+                if clean_new.lower() not in {
+                    a.name.lower() for a in state.extracted_assets
+                }:
                     state.extracted_assets.append(
                         ExtractedAssetRecord(name=clean_new, description=clean_desc)
                     )
@@ -413,10 +499,13 @@ with tab_assets:
         for idx, asset_rec in enumerate(state.extracted_assets):
             row_col1, row_col2 = st.columns([9, 1])
             with row_col1:
-                st.markdown(f"**{idx + 1}. `{asset_rec.name}`** — {asset_rec.description}")
+                st.markdown(
+                    f"**{idx + 1}. `{asset_rec.name}`** — {asset_rec.description}"
+                )
             with row_col2:
-                if st.button("❌", key=f"del_asset_{idx}", help=f"Rimuovi '{asset_rec.name}'"):
+                if st.button(
+                    "❌", key=f"del_asset_{idx}", help=f"Rimuovi '{asset_rec.name}'"
+                ):
                     state.extracted_assets.pop(idx)
                     repository.save(state)
                     st.rerun()
-

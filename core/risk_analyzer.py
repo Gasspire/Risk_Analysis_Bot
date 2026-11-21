@@ -1,7 +1,13 @@
 import statistics as stat
 from typing import cast
 from typing import List, Tuple
-from models import ThreatRecord, LikelihoodOutput, ImpactOutput, TypeOfMeasures, SynthesisOutput
+from models import (
+    ThreatRecord,
+    LikelihoodOutput,
+    ImpactOutput,
+    TypeOfMeasures,
+    SynthesisOutput,
+)
 from core.llm_chains import LLMChainFactory
 from core.rag_engine import RAGEngine
 
@@ -24,12 +30,17 @@ class RiskAnalyzer:
         rag_context = self.rag_engine.retrieve_context(query_class)
 
         try:
-            res_class = cast(TypeOfMeasures,self.classification_chain.invoke({
-                "rag_context": rag_context,
-                "threat": threat,
-                "affected_assets": assets,
-                "security_measures": measures,
-            }))
+            res_class = cast(
+                TypeOfMeasures,
+                self.classification_chain.invoke(
+                    {
+                        "rag_context": rag_context,
+                        "threat": threat,
+                        "affected_assets": assets,
+                        "security_measures": measures,
+                    }
+                ),
+            )
             prev_list = [m.measure_name for m in res_class.measures if m.is_preventive]
             mit_list = [m.measure_name for m in res_class.measures if m.is_mitigative]
 
@@ -50,14 +61,19 @@ class RiskAnalyzer:
         general_context: str,
     ) -> LikelihoodOutput:
         try:
-            return cast(LikelihoodOutput,self.likelihood_chain.invoke({
-                "general_context": general_context,
-                "rag_context": rag_context,
-                "threat": threat,
-                "affected_assets": assets,
-                "security_measures": preventive_measures,
-                "analyst_custom_rules": rules_l,
-            }))
+            return cast(
+                LikelihoodOutput,
+                self.likelihood_chain.invoke(
+                    {
+                        "general_context": general_context,
+                        "rag_context": rag_context,
+                        "threat": threat,
+                        "affected_assets": assets,
+                        "security_measures": preventive_measures,
+                        "analyst_custom_rules": rules_l,
+                    }
+                ),
+            )
         except Exception as e:
             print(f"Errore calcolo Likelihood per '{threat}': {e}")
             return LikelihoodOutput(
@@ -78,14 +94,19 @@ class RiskAnalyzer:
         general_context: str,
     ) -> ImpactOutput:
         try:
-            return cast(ImpactOutput,self.impact_chain.invoke({
-                "general_context": general_context,
-                "rag_context": rag_context,
-                "threat": threat,
-                "affected_assets": assets,
-                "security_measures": mitigative_measures,
-                "analyst_custom_rules": rules_i,
-            }))
+            return cast(
+                ImpactOutput,
+                self.impact_chain.invoke(
+                    {
+                        "general_context": general_context,
+                        "rag_context": rag_context,
+                        "threat": threat,
+                        "affected_assets": assets,
+                        "security_measures": mitigative_measures,
+                        "analyst_custom_rules": rules_i,
+                    }
+                ),
+            )
         except Exception as e:
             print(f"Errore calcolo Impatto per '{threat}': {e}")
             return ImpactOutput(
@@ -101,12 +122,17 @@ class RiskAnalyzer:
     ) -> str:
         formatted_reasonings = "\n".join(f"- {r}" for r in reasonings)
         try:
-            res = cast(SynthesisOutput,self.synthesis_chain.invoke({
-                "threat": threat,
-                "type": type_score,
-                "final_score": final_score,
-                "reasonings": formatted_reasonings,
-            }))
+            res = cast(
+                SynthesisOutput,
+                self.synthesis_chain.invoke(
+                    {
+                        "threat": threat,
+                        "type": type_score,
+                        "final_score": final_score,
+                        "reasonings": formatted_reasonings,
+                    }
+                ),
+            )
             return res.synthesized_reasoning
         except Exception as e:
             print(f"Errore sintesi reasoning per '{threat}': {e}")
@@ -136,10 +162,20 @@ class RiskAnalyzer:
 
         for _ in range(num_iterations):
             res_l = self.evaluate_likelihood(
-                record.threat, record.affected_assets, prev_str, rag_context_l, rules_l, general_context
+                record.threat,
+                record.affected_assets,
+                prev_str,
+                rag_context_l,
+                rules_l,
+                general_context,
             )
             res_i = self.evaluate_impact(
-                record.threat, record.affected_assets, mit_str, rag_context_i, rules_i, general_context
+                record.threat,
+                record.affected_assets,
+                mit_str,
+                rag_context_i,
+                rules_i,
+                general_context,
             )
 
             l_scores.append(res_l.likelihood_score)
@@ -163,8 +199,12 @@ class RiskAnalyzer:
             except stat.StatisticsError:
                 final_i_score = i_scores[0] if i_scores else 1
 
-            valid_l_reasons = [r for r, s in zip(l_reasons, l_scores) if s == final_l_score]
-            valid_i_reasons = [r for r, s in zip(i_reasons, i_scores) if s == final_i_score]
+            valid_l_reasons = [
+                r for r, s in zip(l_reasons, l_scores) if s == final_l_score
+            ]
+            valid_i_reasons = [
+                r for r, s in zip(i_reasons, i_scores) if s == final_i_score
+            ]
 
             final_l_reasoning = self.synthesize_reasoning(
                 record.threat, "Likelihood", final_l_score, valid_l_reasons

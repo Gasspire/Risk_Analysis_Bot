@@ -24,16 +24,18 @@ from models import (
 @dataclass
 class SemanticCluster:
     """Rappresenta un cluster semantico di termini candidati con i relativi embedding e centroide."""
+
     cluster_id: int
     terms: List[str]
     embeddings: np.ndarray  # shape: (n_terms, dim)
-    centroid: np.ndarray    # shape: (dim,)
+    centroid: np.ndarray  # shape: (dim,)
     cohesion_score: float = 1.0
 
 
 @dataclass
 class AssetExtractionPipelineResult:
     """Contiene i risultati completi e le metriche intermedie dell'intera pipeline (Step 1-8 + Descrizioni)."""
+
     candidate_terms_count: int = 0
     optimal_k: int = 0
     best_silhouette_score: float = 0.0
@@ -111,8 +113,10 @@ class AssetExtractor:
         if not os.path.exists(self.docs_dir):
             return []
         return sorted(
-            f for f in os.listdir(self.docs_dir)
-            if f.lower().endswith((".txt", ".md")) and os.path.isfile(os.path.join(self.docs_dir, f))
+            f
+            for f in os.listdir(self.docs_dir)
+            if f.lower().endswith((".txt", ".md"))
+            and os.path.isfile(os.path.join(self.docs_dir, f))
         )
 
     def load_documents_text(self, extra_text: str = "") -> str:
@@ -148,11 +152,11 @@ class AssetExtractor:
         dal testo inglese usando spaCy, applicando lemmatizzazione, rimozione stopword
         e deduplicazione iniziale.
         """
-        if not text or not text.strip(): 
-            return [] # Torniamo nulla se il testo è vuoto
+        if not text or not text.strip():
+            return []  # Torniamo nulla se il testo è vuoto
 
-        nlp = self._get_nlp() 
-        doc = nlp(text)# Passiamo il testo al modello
+        nlp = self._get_nlp()
+        doc = nlp(text)  # Passiamo il testo al modello
 
         candidates: List[str] = []
         seen: set[str] = set()
@@ -162,12 +166,12 @@ class AssetExtractor:
             cleaned = re.sub(r"\s+", " ", raw_term).strip(" -_.,;:!?()[]{}\"'/\\")
             cleaned_lower = cleaned.lower()
             if (
-                len(cleaned_lower) >= min_length # scartiamo se è troppo corto 
-                and not cleaned_lower.isdigit() # scartiamo se è un numero
-                and cleaned_lower not in seen # scartiamo se lo abbiamo già visto
+                len(cleaned_lower) >= min_length  # scartiamo se è troppo corto
+                and not cleaned_lower.isdigit()  # scartiamo se è un numero
+                and cleaned_lower not in seen  # scartiamo se lo abbiamo già visto
             ):
-                seen.add(cleaned_lower) # aggiungiamo alla lista dei visti
-                candidates.append(cleaned_lower) # aggiungiamo ai candidati
+                seen.add(cleaned_lower)  # aggiungiamo alla lista dei visti
+                candidates.append(cleaned_lower)  # aggiungiamo ai candidati
 
         def _clean_lemma(token) -> str:
             raw_text = token.text.strip().lower()
@@ -182,7 +186,8 @@ class AssetExtractor:
         if include_noun_chunks:
             for chunk in doc.noun_chunks:
                 raw_tokens = [
-                    t for t in chunk
+                    t
+                    for t in chunk
                     if t.pos_ in ("NOUN", "PROPN", "ADJ")
                     and not t.is_stop
                     and not t.is_punct
@@ -198,7 +203,10 @@ class AssetExtractor:
                 content_tokens = [_clean_lemma(t) for t in raw_tokens]
 
                 # Aggiungiamo i chunk composti (2-4 parole) che terminano con un sostantivo
-                if 2 <= len(content_tokens) <= 4 and chunk.root.pos_ in ("NOUN", "PROPN"):
+                if 2 <= len(content_tokens) <= 4 and chunk.root.pos_ in (
+                    "NOUN",
+                    "PROPN",
+                ):
                     phrase = " ".join(content_tokens)
                     _add_candidate(phrase)
                     chunk_words.update(content_tokens)
@@ -382,7 +390,10 @@ class AssetExtractor:
             # Escludiamo le coppie la cui fusione supererebbe max_merged_terms
             for row_i in range(len(current)):
                 for col_j in range(row_i + 1, len(current)):
-                    if len(current[row_i].terms) + len(current[col_j].terms) > max_merged_terms:
+                    if (
+                        len(current[row_i].terms) + len(current[col_j].terms)
+                        > max_merged_terms
+                    ):
                         sim_matrix[row_i, col_j] = -1.0
                         sim_matrix[col_j, row_i] = -1.0
 
@@ -400,7 +411,9 @@ class AssetExtractor:
             c1, c2 = current[i], current[j]
             merged_terms = c1.terms + [t for t in c2.terms if t not in c1.terms]
             merged_embs = np.vstack([c1.embeddings, c2.embeddings])
-            merged_centroid = normalize(merged_embs.mean(axis=0, keepdims=True), norm="l2")[0]
+            merged_centroid = normalize(
+                merged_embs.mean(axis=0, keepdims=True), norm="l2"
+            )[0]
             merged_cohesion = self._compute_internal_cohesion(merged_embs)
 
             current[i] = SemanticCluster(
@@ -447,13 +460,17 @@ class AssetExtractor:
             try:
                 res: Optional[AssetExtractionOutput] = cast(
                     Optional[AssetExtractionOutput],
-                    chain.invoke({
-                        "general_context": general_context or "None provided.",
-                        "clusters_text": clusters_text,
-                    }),
+                    chain.invoke(
+                        {
+                            "general_context": general_context or "None provided.",
+                            "clusters_text": clusters_text,
+                        }
+                    ),
                 )
             except Exception as e:
-                print(f"Errore LLM su batch cluster {i}..{i + len(batch_clusters) - 1}: {e}")
+                print(
+                    f"Errore LLM su batch cluster {i}..{i + len(batch_clusters) - 1}: {e}"
+                )
                 continue
 
             if res and res.clusters_evaluation:
@@ -488,7 +505,9 @@ class AssetExtractor:
 
             doc = nlp(cleaned.lower())
             lemma_key = " ".join(
-                t.lemma_.lower() for t in doc if not t.is_punct and not t.is_space and not t.is_stop
+                t.lemma_.lower()
+                for t in doc
+                if not t.is_punct and not t.is_space and not t.is_stop
             ).strip()
             if not lemma_key:
                 lemma_key = cleaned.lower()
@@ -587,18 +606,24 @@ class AssetExtractor:
             try:
                 res: Optional[AssetDescriptionsOutput] = cast(
                     Optional[AssetDescriptionsOutput],
-                    chain.invoke({
-                        "general_context": general_context or "None provided.",
-                        "document_context": snippets,
-                        "assets_list": assets_list_str,
-                    }),
+                    chain.invoke(
+                        {
+                            "general_context": general_context or "None provided.",
+                            "document_context": snippets,
+                            "assets_list": assets_list_str,
+                        }
+                    ),
                 )
                 if res and res.assets:
                     for item in res.assets:
                         if item.name and item.description:
-                            described_map[item.name.strip().lower()] = item.description.strip()
+                            described_map[item.name.strip().lower()] = (
+                                item.description.strip()
+                            )
             except Exception as e:
-                print(f"Errore generazione descrizioni batch {i}..{i + len(batch) - 1}: {e}")
+                print(
+                    f"Errore generazione descrizioni batch {i}..{i + len(batch) - 1}: {e}"
+                )
 
         records: List[ExtractedAssetRecord] = []
         for asset_name in assets:
@@ -606,7 +631,11 @@ class AssetExtractor:
             if not desc:
                 # Fallback se il nome restituito dall'LLM aveva una lieve differenza
                 desc = next(
-                    (v for k, v in described_map.items() if asset_name.lower() in k or k in asset_name.lower()),
+                    (
+                        v
+                        for k, v in described_map.items()
+                        if asset_name.lower() in k or k in asset_name.lower()
+                    ),
                     "Asset identified within the system architecture documentation.",
                 )
             records.append(ExtractedAssetRecord(name=asset_name, description=desc))
@@ -691,6 +720,3 @@ class AssetExtractor:
         )
 
         return result
-
-
-

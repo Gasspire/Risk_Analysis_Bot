@@ -4,11 +4,13 @@ from config import MODEL_NAME, TEMPERATURE, BASE_URL
 import models
 import prompt
 
+
 class LLMChainFactory:
     """
     Fabbrica per l'inizializzazione modulare delle catene LangChain e dei client LLM.
     Evita istanziazioni globali incontrollate e consente la riconfigurazione dinamica.
     """
+
     def __init__(
         self,
         model_name: str = MODEL_NAME,
@@ -44,68 +46,84 @@ class LLMChainFactory:
     def get_classification_chain(self):
         llm = self.get_llm()
 
-        tmpl = ChatPromptTemplate.from_messages([
-            ("system", prompt.CLASSIFICATION_SYSTEM_PROMPT),
-            ("human", prompt.HUMAN_PROMPT_CLASSIFICATION),
-        ]).partial(classification_examples=prompt.CLASSIFICATION_EXAMPLES)
+        tmpl = ChatPromptTemplate.from_messages(
+            [
+                ("system", prompt.CLASSIFICATION_SYSTEM_PROMPT),
+                ("human", prompt.HUMAN_PROMPT_CLASSIFICATION),
+            ]
+        ).partial(classification_examples=prompt.CLASSIFICATION_EXAMPLES)
 
         return tmpl | llm.with_structured_output(models.TypeOfMeasures)
 
     def get_likelihood_chain(self):
         llm = self.get_llm()
 
-        tmpl = ChatPromptTemplate.from_messages([
-            ("system", prompt.LIKELIHOOD_SYSTEM_PROMPT),
-            ("human", prompt.HUMAN_PROMPT_LIKELIHOOD),
-        ]).partial(likelihood_examples=prompt.LIKELIHOOD_EXAMPLES)
+        tmpl = ChatPromptTemplate.from_messages(
+            [
+                ("system", prompt.LIKELIHOOD_SYSTEM_PROMPT),
+                ("human", prompt.HUMAN_PROMPT_LIKELIHOOD),
+            ]
+        ).partial(likelihood_examples=prompt.LIKELIHOOD_EXAMPLES)
         return tmpl | llm.with_structured_output(models.LikelihoodOutput)
 
     def get_impact_chain(self):
         llm = self.get_llm()
 
-        tmpl = ChatPromptTemplate.from_messages([
-            ("system", prompt.IMPACT_SYSTEM_PROMPT),
-            ("human", prompt.HUMAN_PROMPT_IMPACT),
-        ]).partial(impact_examples=prompt.IMPACT_EXAMPLES)
+        tmpl = ChatPromptTemplate.from_messages(
+            [
+                ("system", prompt.IMPACT_SYSTEM_PROMPT),
+                ("human", prompt.HUMAN_PROMPT_IMPACT),
+            ]
+        ).partial(impact_examples=prompt.IMPACT_EXAMPLES)
         return tmpl | llm.with_structured_output(models.ImpactOutput)
 
     def get_synthesis_chain(self):
         llm = self.get_llm()
 
-        tmpl = ChatPromptTemplate.from_messages([
-            ("system", prompt.SYNTHESIS_SYSTEM_PROMPT),
-            ("human", prompt.HUMAN_PROMPT_SYNTHESIS),
-        ])
+        tmpl = ChatPromptTemplate.from_messages(
+            [
+                ("system", prompt.SYNTHESIS_SYSTEM_PROMPT),
+                ("human", prompt.HUMAN_PROMPT_SYNTHESIS),
+            ]
+        )
         return tmpl | llm.with_structured_output(models.SynthesisOutput)
 
     def get_intent_chain(self):
         llm = self.get_llm(num_predict=300)
-        tmpl = ChatPromptTemplate.from_messages([
-            ("system", prompt.INTENT_SYSTEM_PROMPT),
-            ("human", "{input}"),
-        ]).partial(intent_examples=prompt.INTENT_EXAMPLES)
+        tmpl = ChatPromptTemplate.from_messages(
+            [
+                ("system", prompt.INTENT_SYSTEM_PROMPT),
+                ("human", "{input}"),
+            ]
+        ).partial(intent_examples=prompt.INTENT_EXAMPLES)
         return tmpl | llm.with_structured_output(models.IntentOutput)
 
     def get_rag_info_chain(self):
         llm = self.get_llm()
-        tmpl = ChatPromptTemplate.from_messages([
-            ("system", prompt.RAG_INFO_SYSTEM_PROMPT),
-            ("human", prompt.HUMAN_PROMPT_RAG_INFO),
-        ])
+        tmpl = ChatPromptTemplate.from_messages(
+            [
+                ("system", prompt.RAG_INFO_SYSTEM_PROMPT),
+                ("human", prompt.HUMAN_PROMPT_RAG_INFO),
+            ]
+        )
         return tmpl | llm
 
     def get_asset_extraction_chain(self):
         llm = self.get_llm(num_predict=2048, temperature=0.0, seed=42)
-        tmpl = ChatPromptTemplate.from_messages([
-            ("system", prompt.ASSET_EXTRACTION_SYSTEM_PROMPT),
-            ("human", prompt.HUMAN_PROMPT_ASSET_EXTRACTION),
-        ]).partial(asset_extraction_examples=prompt.ASSET_EXTRACTION_EXAMPLES)
+        tmpl = ChatPromptTemplate.from_messages(
+            [
+                ("system", prompt.ASSET_EXTRACTION_SYSTEM_PROMPT),
+                ("human", prompt.HUMAN_PROMPT_ASSET_EXTRACTION),
+            ]
+        ).partial(asset_extraction_examples=prompt.ASSET_EXTRACTION_EXAMPLES)
         return tmpl | llm.with_structured_output(models.AssetExtractionOutput)
 
     def get_asset_description_chain(self):
         llm = self.get_llm(num_predict=2048, temperature=0.0, seed=42)
-        tmpl = ChatPromptTemplate.from_messages([
-            ("system", prompt.ASSET_DESCRIPTION_SYSTEM_PROMPT),
-            ("human", prompt.HUMAN_PROMPT_ASSET_DESCRIPTION),
-        ]).partial(asset_description_examples=prompt.ASSET_DESCRIPTION_EXAMPLES)
+        tmpl = ChatPromptTemplate.from_messages(
+            [
+                ("system", prompt.ASSET_DESCRIPTION_SYSTEM_PROMPT),
+                ("human", prompt.HUMAN_PROMPT_ASSET_DESCRIPTION),
+            ]
+        ).partial(asset_description_examples=prompt.ASSET_DESCRIPTION_EXAMPLES)
         return tmpl | llm.with_structured_output(models.AssetDescriptionsOutput)

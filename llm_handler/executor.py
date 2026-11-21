@@ -13,11 +13,13 @@ from llm_handler.handlers import (
     handle_asset_extract,
 )
 
+
 class RiskAgentExecutor:
     """
     Orchestratore puro per la gestione del dialogo e delle operazioni del Bot.
     Riceve lo stato immutabile o mutabile e restituisce la risposta formattata e lo stato finale aggiornato.
     """
+
     def __init__(
         self,
         chain_factory: LLMChainFactory,
@@ -28,19 +30,21 @@ class RiskAgentExecutor:
         self.chain_factory = chain_factory
         self.rag_engine = rag_engine
         self.risk_analyzer = risk_analyzer
-        self.asset_extractor = asset_extractor or AssetExtractor(chain_factory=chain_factory)
+        self.asset_extractor = asset_extractor or AssetExtractor(
+            chain_factory=chain_factory
+        )
         self.intent_chain = self.chain_factory.get_intent_chain()
-
-
 
     def process_message(
         self, user_input: str, state: SessionStateData
     ) -> Tuple[str, SessionStateData]:
         has_pending = state.pending_threat is not None
         has_active_discussion = state.active_threat_id is not None
-        
+
         try:
-            intent_res: IntentOutput = cast(IntentOutput,self.intent_chain.invoke({"input": user_input}))
+            intent_res: IntentOutput = cast(
+                IntentOutput, self.intent_chain.invoke({"input": user_input})
+            )
             intent = intent_res.intent
             entities = intent_res.extracted_entities or {}
 

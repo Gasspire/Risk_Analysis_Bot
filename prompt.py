@@ -1,4 +1,3 @@
-
 CLASSIFICATION_EXAMPLES = """
 Input: threat="Ransomware infection", affected_assets="Servers", security_measures="Next-Gen Firewall, Offline Backups, Security Awareness Training"
 
@@ -732,4 +731,3 @@ RELEVANT SYSTEM DOCUMENTATION EXCERPTS:
 ASSETS TO DESCRIBE:
 {assets_list}
 """
-

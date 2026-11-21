@@ -13,4 +13,3 @@ CHATS_DIR = "./chats"
 
 
 DEFAULT_CONTEXT = ""
-
