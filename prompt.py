@@ -522,9 +522,10 @@ USER INPUT:
 
 EXTRACTION & DISCUSSION RULES:
 1. Set "is_finished" to true ONLY if the user explicitly wants to finalize/save and close the discussion with no further questions or changes requested (e.g., "looks good, we are done", "close discussion", "confirm and save", "satisfied, no further changes"). If the user is requesting changes, asking questions, or discussing the threat, set "is_finished" to false (even if casual words like "ok" or "sure" are used).
-2. If the user requests score changes for likelihood or impact, extract the new integer values (1 to 5). If unchanged, set to null.
-3. If the user provides new reasoning or requests updated reasoning, provide concise and factual updated reasoning strings. Otherwise set to null.
-4. Generate a clear, professional, objective, and factual response ("response_text") answering any technical/cybersecurity questions, summarizing any applied changes, and asking if the analyst is satisfied or wants further adjustments.
+2. If the user explicitly requests score changes for likelihood or impact (e.g., "set impact to 3"), extract the new integer values (1 to 5). If unchanged or if the user asks to re-evaluate based on a new rule/assumption without specifying an explicit score, set to null.
+3. If the user provides new reasoning or requests updated reasoning directly, provide concise and factual updated reasoning strings. Otherwise set to null.
+4. If the user introduces a temporary rule, constraint, or assumption to re-evaluate the threat (e.g., "re-evaluate assuming MFA is disabled" or "consider that backups take 48 hours"), extract "additional_rule_l" (for likelihood), "additional_rule_i" (for impact), and/or "general_observation" (for general context). Otherwise set them to null.
+5. Generate a clear, professional, objective, and factual response ("response_text") answering any technical/cybersecurity questions, summarizing any applied changes, and asking if the analyst is satisfied or wants further adjustments.
 
 You MUST respond strictly with a valid JSON object matching this structure:
 
@@ -534,6 +535,9 @@ You MUST respond strictly with a valid JSON object matching this structure:
     "updated_impact": integer or null,
     "updated_likelihood_reasoning": string or null,
     "updated_impact_reasoning": string or null,
+    "additional_rule_l": string or null,
+    "additional_rule_i": string or null,
+    "general_observation": string or null,
     "response_text": "string"
 }}
 """

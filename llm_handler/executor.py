@@ -86,6 +86,7 @@ class RiskAgentExecutor:
                 risk_analyzer=self.risk_analyzer,
                 entities=entities,
                 user_input=user_input,
+                chain_factory=self.chain_factory,
             )
 
         elif intent == IntentType.DISCUSS_MODIFY:
@@ -94,6 +95,7 @@ class RiskAgentExecutor:
                 state=state,
                 chain_factory=self.chain_factory,
                 entities=entities,
+                risk_analyzer=self.risk_analyzer,
             )
         elif intent == IntentType.ASSET_EXTRACT:
             output_text, updated_state = handle_asset_extract(
