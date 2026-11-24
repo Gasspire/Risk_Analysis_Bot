@@ -218,26 +218,28 @@ def handle_reevaluate_filtered(
     chain_factory: Optional[LLMChainFactory] = None,
 ) -> Tuple[str, SessionStateData]:
 
-    if not state.assessment_results: # Controllo che la lista non sia vuota
+    if not state.assessment_results:  # Controllo che la lista non sia vuota
         return (
             "No threats present in the assessment report to evaluate. Please load a threat file before proceeding.",
             state,
         )
 
-    extracted_rules: Dict[str, Any] = {} 
+    extracted_rules: Dict[str, Any] = {}
     if chain_factory and user_input:
         try:
-            llm_json = chain_factory.get_llm(json_format=True) # Prendo la catena 
+            llm_json = chain_factory.get_llm(json_format=True)  # Prendo la catena
             extractor_prompt = ChatPromptTemplate.from_messages(
                 [
-                    ("system", prompt.REEVALUATE_EXTRACTOR_PROMPT), 
+                    ("system", prompt.REEVALUATE_EXTRACTOR_PROMPT),
                     ("human", "{input}"),
                 ]
             )
             chain = extractor_prompt | llm_json | JsonOutputParser()
-            res = chain.invoke({"input": user_input, "entities": entities}) # La catena contiene filter_keyword, additional_rule_l/i general_observation
+            res = chain.invoke(
+                {"input": user_input, "entities": entities}
+            )  # La catena contiene filter_keyword, additional_rule_l/i general_observation
             if isinstance(res, dict):
-                extracted_rules = res # Estraggo i valori dal Json
+                extracted_rules = res  # Estraggo i valori dal Json
         except Exception as e:
             print(f"Errore estrazione regole reevaluate: {e}")
 
@@ -246,12 +248,20 @@ def handle_reevaluate_filtered(
             return val.strip()
         return None
 
-    extracted_filter_kw = _clean_opt(extracted_rules.get("filter_keyword")) # inserisco i valori
-    add_rule_l = _clean_opt(extracted_rules.get("additional_rule_l")) # inserisco i valori
-    add_rule_i = _clean_opt(extracted_rules.get("additional_rule_i")) # inserisco i valori
-    gen_obs = _clean_opt(extracted_rules.get("general_observation")) # inserisco i valori
+    extracted_filter_kw = _clean_opt(
+        extracted_rules.get("filter_keyword")
+    )  # inserisco i valori
+    add_rule_l = _clean_opt(
+        extracted_rules.get("additional_rule_l")
+    )  # inserisco i valori
+    add_rule_i = _clean_opt(
+        extracted_rules.get("additional_rule_i")
+    )  # inserisco i valori
+    gen_obs = _clean_opt(
+        extracted_rules.get("general_observation")
+    )  # inserisco i valori
 
-    filter_value = ( # filtro estratto dal sistema di riconoscitore di intenti
+    filter_value = (  # filtro estratto dal sistema di riconoscitore di intenti
         entities.get("filter_value")
         or entities.get("affected_assets")
         or entities.get("target_filter")
@@ -259,11 +269,13 @@ def handle_reevaluate_filtered(
         or ""
     )
 
-    filter_condition = entities.get("filter_condition") or "" # filtra i record in base ai valori numerici
+    filter_condition = (
+        entities.get("filter_condition") or ""
+    )  # filtra i record in base ai valori numerici
 
-    matched_records: List[ThreatRecord] = [] # Lista dove andranno i record filtrati
+    matched_records: List[ThreatRecord] = []  # Lista dove andranno i record filtrati
 
-    if filter_value: # Filtro per parole chiave
+    if filter_value:  # Filtro per parole chiave
         keywords = [
             k.strip().lower()
             for k in filter_value.replace(",", " ").split()
@@ -279,8 +291,7 @@ def handle_reevaluate_filtered(
             )
         ]
 
-
-    if not matched_records and filter_condition: # Filtro per valori numerici
+    if not matched_records and filter_condition:  # Filtro per valori numerici
         cond_lower = filter_condition.lower()
 
         digits = [int(s) for s in cond_lower.split() if s.isdigit()]
@@ -316,8 +327,9 @@ def handle_reevaluate_filtered(
                     r for r in state.assessment_results if r.likelihood >= thresh
                 ]
 
-
-    if not matched_records and user_input: # Fallback in caso non ci siano record filtrati
+    if (
+        not matched_records and user_input
+    ):  # Fallback in caso non ci siano record filtrati
         for r in state.assessment_results:
             if (
                 r.threat.lower() in user_input.lower()
@@ -325,36 +337,41 @@ def handle_reevaluate_filtered(
             ):
                 matched_records.append(r)
 
-    if not matched_records: # Se non ci sono record filtrati, prendi tutti i record forse da togliere 
+    if (
+        not matched_records
+    ):  # Se non ci sono record filtrati, prendi tutti i record forse da togliere
         matched_records = state.assessment_results
 
     temp_general_context = (
-        f"{state.general_context}\n{gen_obs}".strip() # Mette il general context insieme ai commenti 
+        f"{state.general_context}\n{gen_obs}".strip()  # Mette il general context insieme ai commenti
         if gen_obs
         else state.general_context
     )
     temp_rules_l = (
-        f"{state.custom_rules_likelihood}\n{add_rule_l}".strip() # Mette le regole di verosimiglianza insieme ai commenti
+        f"{state.custom_rules_likelihood}\n{add_rule_l}".strip()  # Mette le regole di verosimiglianza insieme ai commenti
         if add_rule_l
         else state.custom_rules_likelihood
     )
     temp_rules_i = (
-        f"{state.custom_rules_impact}\n{add_rule_i}".strip() # Mette le regole di impatto insieme ai commenti
+        f"{state.custom_rules_impact}\n{add_rule_i}".strip()  # Mette le regole di impatto insieme ai commenti
         if add_rule_i
         else state.custom_rules_impact
     )
 
-    updated_subset = risk_analyzer.evaluate_list_of_threats( # Esegue la rivalutazione del batch
-        threat_list=matched_records,
-        general_context=temp_general_context,
-        rules_l=temp_rules_l,
-        rules_i=temp_rules_i,
-        num_iterations=state.num_iterations,
+    updated_subset = (
+        risk_analyzer.evaluate_list_of_threats(  # Esegue la rivalutazione del batch
+            threat_list=matched_records,
+            general_context=temp_general_context,
+            rules_l=temp_rules_l,
+            rules_i=temp_rules_i,
+            num_iterations=state.num_iterations,
+        )
     )
 
-    subset_map = {r.id: r for r in updated_subset} # mi salvo i record rivalutati
+    subset_map = {r.id: r for r in updated_subset}  # mi salvo i record rivalutati
     state.assessment_results = [
-        subset_map.get(r.id, r) for r in state.assessment_results # metto i nuovi record insieme a quelli non rivalutati
+        subset_map.get(r.id, r)
+        for r in state.assessment_results  # metto i nuovi record insieme a quelli non rivalutati
     ]
 
     summary_lines = [
@@ -398,7 +415,7 @@ def handle_asset_extract(
     # Unisce i nuovi asset estratti (con descrizione) alla lista globale evitando duplicati case-insensitive
     existing_map = {a.name.lower(): a for a in state.extracted_assets}
     for item in res.described_assets:
-        key = item.name.lower() 
+        key = item.name.lower()
         if key not in existing_map:
             state.extracted_assets.append(item)
             existing_map[key] = item
@@ -433,22 +450,24 @@ def handle_discuss_modify(
     risk_analyzer: Optional[RiskAnalyzer] = None,
 ) -> Tuple[str, SessionStateData]:
 
-    active_id = state.active_threat_id # ID del threat attivo
+    active_id = state.active_threat_id  # ID del threat attivo
     target_record: Optional[ThreatRecord] = None
 
-    if active_id: # Se non c'è, significa che siamo appena entrati nella funzione
+    if active_id:  # Se non c'è, significa che siamo appena entrati nella funzione
         target_record = next(
             (r for r in state.assessment_results if r.id == active_id), None
         )
 
-    if not target_record: # Altrimenti cerco il threat in base a quello che mi hanno passato 
-        if not state.assessment_results: # Fallback nel caso la lista sia vuota
+    if (
+        not target_record
+    ):  # Altrimenti cerco il threat in base a quello che mi hanno passato
+        if not state.assessment_results:  # Fallback nel caso la lista sia vuota
             return (
                 "No evaluated threats are present in the assessment report. Please load or evaluate threats first before discussing them.",
                 state,
             )
 
-        search_term = ( # Prendo quello che mi hanno passato nei campi (l'LLM potrebbe non per forza scrivere sempre il target correttamente, è una misura di sicurezza in più)
+        search_term = (  # Prendo quello che mi hanno passato nei campi (l'LLM potrebbe non per forza scrivere sempre il target correttamente, è una misura di sicurezza in più)
             entities.get("threat_name")
             or entities.get("threat")
             or entities.get("target_threat")
@@ -460,27 +479,26 @@ def handle_discuss_modify(
             if isinstance(search_term, str)
             else ""
         )
-       
-        if clean_term: # controllo se c'è il termine da cercare
+
+        if clean_term:  # controllo se c'è il termine da cercare
             target_record = next(
                 (
                     r
-                    for r in state.assessment_results #cerco il termine nella minaccia o viceversa
+                    for r in state.assessment_results  # cerco il termine nella minaccia o viceversa
                     if clean_term in r.threat.lower() or r.threat.lower() in clean_term
                 ),
                 None,
             )
 
-
-            if not target_record: # Prima non ho trovato nulla
+            if not target_record:  # Prima non ho trovato nulla
                 sig_words = [
                     w
-                    for w in clean_term.split() # splitto l'input
+                    for w in clean_term.split()  # splitto l'input
                     if len(w) > 3
                     and w not in ["threat", "attack", "risk", "minaccia", "attacco"]
                 ]
 
-                if sig_words: #cerco la singola parola
+                if sig_words:  # cerco la singola parola
                     target_record = next(
                         (
                             r
@@ -490,10 +508,8 @@ def handle_discuss_modify(
                         None,
                     )
 
-
-
-        if not target_record: # Ancora nulla 
-            user_input_lower = user_input.lower() # Controllo l'input utente
+        if not target_record:  # Ancora nulla
+            user_input_lower = user_input.lower()  # Controllo l'input utente
             for r in state.assessment_results:
                 if r.threat.lower() in user_input_lower:
                     target_record = r
@@ -511,7 +527,7 @@ def handle_discuss_modify(
                         target_record = r
                         break
 
-        if not target_record: # Il bot si arrende 
+        if not target_record:  # Il bot si arrende
             return (
                 f"The requested threat is not present in the assessment report.",
                 state,
@@ -536,7 +552,7 @@ def handle_discuss_modify(
     parsed_res = {}
 
     try:
-        res = chain.invoke( # Passo alla chain lo stato attuale
+        res = chain.invoke(  # Passo alla chain lo stato attuale
             {
                 "threat": target_record.threat,
                 "affected_assets": target_record.affected_assets,
@@ -575,7 +591,7 @@ def handle_discuss_modify(
     add_rule_i = _clean_rule(parsed_res.get("additional_rule_i"))
     gen_obs = _clean_rule(parsed_res.get("general_observation"))
 
-    if ( # gestisco i vari casi di rianalisi
+    if (  # gestisco i vari casi di rianalisi
         risk_analyzer is not None
         and (add_rule_l or add_rule_i or gen_obs)
         and updated_l is None

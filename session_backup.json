@@ -709,16 +709,160 @@
         {
             "name": "activity tracker",
             "description": "Biometric medical device used by patients to track physical activity, transmitting data to the Telehealth Platform Provider for clinical analytics and patient care planning."
+        },
+        {
+            "name": "active directory",
+            "description": "Centralized authentication and authorization system for user and device access control within the HDO domain."
+        },
+        {
+            "name": "storage server",
+            "description": "Cloud-hosted server storing patient data and biometric readings received from biometric devices and RPM interface devices."
+        },
+        {
+            "name": "forwarder appliance",
+            "description": "Cisco Umbrella Forwarder appliance for DNS/IP filtering and anti-malware protection within the HDO enterprise environment."
+        },
+        {
+            "name": "personal computer",
+            "description": "Patient-owned device used for personal activities, not part of the RPM architecture, and potentially introducing security risks."
+        },
+        {
+            "name": "server",
+            "description": "Enterprise server hosting various services, including Active Directory, DNS, and firewalls, within the HDO domain."
+        },
+        {
+            "name": "authenticator",
+            "description": "Provisioned authenticator and credentials for patients to access the RPM solution, managed by telehealth platform providers."
+        },
+        {
+            "name": "clinician workstation",
+            "description": "HDO clinician endpoint for accessing patient data and dashboards, running on Windows and connected to the Telehealth Platform Provider's web server."
+        },
+        {
+            "name": "security infrastructure",
+            "description": "Comprehensive security framework within the HDO domain, including access control, anomalies and events monitoring, data security, and protective technology."
+        },
+        {
+            "name": "security services",
+            "description": "Centralized log aggregation and automated alerting service, providing network visibility, intrusion prevention, and anomaly/recon detection across HDO VLANs."
+        },
+        {
+            "name": "dhcp service",
+            "description": "Dynamic Host Configuration Protocol service providing network address assignment and configuration management for devices within the HDO domain."
+        },
+        {
+            "name": "hdo application",
+            "description": "Electronic Health Record / Health Information System application hosted within the HDO domain, storing and managing patient data and clinical information."
+        },
+        {
+            "name": "hdo dashboard",
+            "description": "Web portal hosted within the Telehealth Platform Provider domain, providing clinicians with real-time access to patient data and biometric readings."
+        },
+        {
+            "name": "intermediate gateway",
+            "description": "Security gateway or router situated between the patient home and the Telehealth Platform Provider, enforcing access control policies and encrypting data transmissions."
+        },
+        {
+            "name": "firewall",
+            "description": "Network security appliance deployed at the boundary to segment internal VLAN zones and enforce access control policies, blocking unauthorized traffic and protecting the HDO domain."
+        },
+        {
+            "name": "broadband internet router",
+            "description": "Patient-provided internet router providing broadband internet connectivity to the patient home, facilitating data transmissions between the patient home and the Telehealth Platform Provider."
+        },
+        {
+            "name": "patient home router",
+            "description": "Network device at the patient's home, responsible for managing internet connectivity and routing traffic between biometric devices and the telehealth platform provider."
+        },
+        {
+            "name": "mobile device",
+            "description": "Provisioned tablet or smartphone running a mobile app, used to collect biometric data from devices and transmit it to the telehealth platform provider."
+        },
+        {
+            "name": "vivify mobile interface device",
+            "description": "Centrally managed mobile device/tablet, locked down to prevent unauthorized configuration changes or app installations, used to collect biometric data from devices and transmit it to the Vivify Health platform."
+        },
+        {
+            "name": "tablet",
+            "description": "Provisioned tablet used as an interface device to collect biometric data from devices and transmit it to the telehealth platform provider."
+        },
+        {
+            "name": "smartphone",
+            "description": "Provisioned smartphone used as an interface device to collect biometric data from devices and transmit it to the telehealth platform provider."
+        },
+        {
+            "name": "centralized log aggregation",
+            "description": "System responsible for collecting and storing logs from various components of the telehealth platform, facilitating security monitoring and incident response."
+        },
+        {
+            "name": "patient health data",
+            "description": "Personally identifiable information and biometric readings of patients, stored and processed by the telehealth platform provider for clinical analytics and patient care."
+        },
+        {
+            "name": "database",
+            "description": "Backend storage server for patient health data, biometric readings, and survey responses, used by the telehealth platform provider for data analysis and patient care."
+        },
+        {
+            "name": "aggregation",
+            "description": "Process of collecting and consolidating biometric readings and survey responses from various devices and sources, used by the telehealth platform provider for clinical analytics."
+        },
+        {
+            "name": "mobile app",
+            "description": "Software application running on provisioned mobile devices, used by patients to collect biometric data from devices and transmit it to the telehealth platform provider."
+        },
+        {
+            "name": "clinician application",
+            "description": "EHR and clinical systems used by healthcare providers to evaluate patient biometric data and update Electronic Health Records (EHR)."
+        },
+        {
+            "name": "application service",
+            "description": "Cloud-hosted functional services, including patient-facing applications, operations and services, and HDO-facing applications/web portals."
+        },
+        {
+            "name": "private blockchain authentication",
+            "description": "Cryptographic authentication mechanism using private blockchain technology for secure data transmission and access control within the telehealth platform provider."
+        },
+        {
+            "name": "secure enclave",
+            "description": "Cryptographically secure environment isolating RPM biometric/mobile devices from untrusted patient home networks and establishing encrypted Layer 2 over Layer 3 secure tunnels."
+        },
+        {
+            "name": "trust enclave",
+            "description": "Not explicitly described in the provided system documentation; however, it is likely a component of the secure enclave or a related concept."
+        },
+        {
+            "name": "home enclave",
+            "description": "Secure environment established within the patient's home network, isolating RPM biometric devices from untrusted devices and enabling encrypted data transmission to the telehealth platform provider."
+        },
+        {
+            "name": "telehealth enclave",
+            "description": "Secure environment within the telehealth platform provider's infrastructure, protecting data transmission and access control for RPM biometric devices and patient data."
+        },
+        {
+            "name": "rpm enclave",
+            "description": "Secure environment within the telehealth platform provider's infrastructure, protecting data transmission and access control for RPM biometric devices and patient data."
+        },
+        {
+            "name": "cisco firepower version",
+            "description": "Network security system deployed at the HDO perimeter to enforce access control policies and detect anomalies, integrated with Stealthwatch for behavioral analytics."
+        },
+        {
+            "name": "cisco stealthwatch version",
+            "description": "Network monitoring and behavioral analytics platform deployed at the HDO Security Services VLAN, providing real-time visibility into network activity and detecting anomalies."
+        },
+        {
+            "name": "dashboard",
+            "description": "Web interface provided by the Telehealth Platform Provider, exposing patient data and survey answers to clinicians for evaluation and care plan updates."
         }
     ],
     "chat_history": [
         {
             "role": "user",
-            "content": "Re-evaluate all threats affecting devices connected to internet assuming that no firewall is active"
+            "content": "Could you search the assets in the documentations?"
         },
         {
             "role": "assistant",
-            "content": "### Re-evaluation Completed (9 threats re-assessed)\n\n- 🔴 **Failure of a telecommunications network** | Likelihood: 3/5 | Impact: 5/5 | **Risk Factor: 15/25 (High)**\n- 🔴 **Saturation of the information system** | Likelihood: 3/5 | Impact: 5/5 | **Risk Factor: 15/25 (High)**\n- 🔴 **Ransomware attack** | Likelihood: 3/5 | Impact: 5/5 | **Risk Factor: 15/25 (High)**\n- 🟠 **Unauthorized use of devices** | Likelihood: 2/5 | Impact: 5/5 | **Risk Factor: 10/25 (Medium)**\n- 🟠 **Tampering with hardware** | Likelihood: 2/5 | Impact: 5/5 | **Risk Factor: 10/25 (Medium)**\n- 🟠 **Damaging devices** | Likelihood: 2/5 | Impact: 5/5 | **Risk Factor: 10/25 (Medium)**\n- 🔴 **Insufficient maintenance of IT devices** | Likelihood: 3/5 | Impact: 5/5 | **Risk Factor: 15/25 (High)**\n- 🔴 **Incorrect parameter or use of devices** | Likelihood: 3/5 | Impact: 5/5 | **Risk Factor: 15/25 (High)**\n- 🟠 **Unprotected devices** | Likelihood: 3/5 | Impact: 4/5 | **Risk Factor: 12/25 (Medium)**"
+            "content": "### Asset Extraction Completed\n\n**Pipeline Summary:**\n- 📝 **Candidate Nouns (spaCy):** 663\n- 🎯 **Optimal K-Means Clusters:** 30 *(Silhouette Score: 0.098)*\n- 🔗 **Clusters after Cohesion & Merge:** 27 *(Selected by LLM: 17)*\n- 🛡️ **Unique Protectable Assets Identified:** 65\n\n---\n\n**Extracted Assets:**\n- **active directory**: Centralized authentication and authorization system for user and device access control within the HDO domain.\n- **storage server**: Cloud-hosted server storing patient data and biometric readings received from biometric devices and RPM interface devices.\n- **device vendor storage server**: Local storage server managed by biometric device vendors, storing patient data transmitted by biometric devices without patient PII.\n- **forwarder appliance**: Cisco Umbrella Forwarder appliance for DNS/IP filtering and anti-malware protection within the HDO enterprise environment.\n- **personal computer**: Patient-owned device used for personal activities, not part of the RPM architecture, and potentially introducing security risks.\n- **laptop**: Provisioned interface device for patients to communicate with their care team, running mobile apps and equipped with a SIM card.\n- **workstation**: Clinician endpoint for accessing patient data and dashboards, running on Windows and monitored by LogRhythm System Monitor Agents.\n- **server**: Enterprise server hosting various services, including Active Directory, DNS, and firewalls, within the HDO domain.\n- **authenticator**: Provisioned authenticator and credentials for patients to access the RPM solution, managed by telehealth platform providers.\n- **sim card**: Preconfigured SIM card ensuring cellular connectivity and network isolation for biometric devices and RPM interface devices.\n- **clinician workstation**: HDO clinician endpoint for accessing patient data and dashboards, running on Windows and connected to the Telehealth Platform Provider's web server.\n- **logrhythm system monitor agents**: LogRhythm System Monitor Agents monitoring clinician workstations and servers for user logon/process activity, file integrity, and unauthorized network traffic.\n- **stealthwatch**: Cisco Stealthwatch for NetFlow behavioral analytics and anomaly/recon detection within the HDO enterprise environment.\n- **security appliance**: Security device deployed within the HDO domain for enforcing access control policies and protecting against unauthorized access.\n- **security infrastructure**: Comprehensive security framework within the HDO domain, including access control, anomalies and events monitoring, data security, and protective technology.\n- **security services**: Centralized log aggregation and automated alerting service, providing network visibility, intrusion prevention, and anomaly/recon detection across HDO VLANs.\n- **windows server domain controller**: Centralized control and authentication service for the HDO domain, providing network visibility, intrusion prevention, and policy-based network protection.\n- **hdo vlan**: Virtual Local Area Network segmenting HDO enterprise servers, databases, and security appliances for network segmentation and default Block All Traffic policies.\n- **hdo domain**: Healthcare Delivery Organization's domain, encompassing physician/clinician endpoints, Electronic Health Record / Health Information System, enterprise servers, databases, and security appliances.\n- **dhcp service**: Dynamic Host Configuration Protocol service providing network address assignment and configuration management for devices within the HDO domain.\n- **hdo application**: Electronic Health Record / Health Information System application hosted within the HDO domain, storing and managing patient data and clinical information.\n- **hdo dashboard**: Web portal hosted within the Telehealth Platform Provider domain, providing clinicians with real-time access to patient data and biometric readings.\n- **hdo workstation**: Physician/clinician endpoint within the HDO domain, used for accessing patient data, updating Electronic Health Records, and communicating with the Telehealth Platform Provider.\n- **intermediate gateway**: Security gateway or router situated between the patient home and the Telehealth Platform Provider, enforcing access control policies and encrypting data transmissions.\n- **onclave gateway**: Secure gateway establishing encrypted Layer 2 over Layer 3 tunnels between Onclave bridges and gateways, protecting RPM traffic from personally-owned devices on home Wi-Fi.\n- **secure iot gateway version**: Onclave Secure IoT Gateway Version 1.1.0, providing secure communication between Onclave gateways and establishing encrypted Layer 2 over Layer 3 secure tunnels between Onclave bridges and gateways.\n- **wireless onclave home gateway**: Onclave Secure IoT Gateway Version 1.1.0, segregating RPM traffic from personally-owned devices on home Wi-Fi and providing cellular isolation or Onclave gateway protection.\n- **security gateway**: Network security appliance enforcing access control policies, encrypting data transmissions, and blocking malicious traffic between the patient home and the Telehealth Platform Provider.\n- **firewall**: Network security appliance deployed at the boundary to segment internal VLAN zones and enforce access control policies, blocking unauthorized traffic and protecting the HDO domain.\n- **broadband internet router**: Patient-provided internet router providing broadband internet connectivity to the patient home, facilitating data transmissions between the patient home and the Telehealth Platform Provider.\n- **patient home router**: Network device at the patient's home, responsible for managing internet connectivity and routing traffic between biometric devices and the telehealth platform provider.\n- **mobile device**: Provisioned tablet or smartphone running a mobile app, used to collect biometric data from devices and transmit it to the telehealth platform provider.\n- **vivify mobile interface device**: Centrally managed mobile device/tablet, locked down to prevent unauthorized configuration changes or app installations, used to collect biometric data from devices and transmit it to the Vivify Health platform.\n- **tablet**: Provisioned tablet used as an interface device to collect biometric data from devices and transmit it to the telehealth platform provider.\n- **smartphone**: Provisioned smartphone used as an interface device to collect biometric data from devices and transmit it to the telehealth platform provider.\n- **cellular device**: Biometric device with a built-in cellular module and SIM card, capable of sending data directly over cellular networks to the telehealth platform provider.\n- **cellular module**: Built-in module in biometric devices, enabling direct cellular connectivity to the telehealth platform provider.\n- **cell tower**: Infrastructure providing cellular connectivity for biometric devices to transmit data directly to the telehealth platform provider.\n- **clinical operational database**: Database storing operational records, user transactions, and application state within the HDO domain, used by clinicians to evaluate patient data.\n- **centralized log aggregation**: System responsible for collecting and storing logs from various components of the telehealth platform, facilitating security monitoring and incident response.\n- **patient health data**: Personally identifiable information and biometric readings of patients, stored and processed by the telehealth platform provider for clinical analytics and patient care.\n- **database**: Backend storage server for patient health data, biometric readings, and survey responses, used by the telehealth platform provider for data analysis and patient care.\n- **aggregation**: Process of collecting and consolidating biometric readings and survey responses from various devices and sources, used by the telehealth platform provider for clinical analytics.\n- **mobile app**: Software application running on provisioned mobile devices, used by patients to collect biometric data from devices and transmit it to the telehealth platform provider.\n- **patient application**: Software application provided by the telehealth platform provider, used by patients to access their health data, communicate with clinicians, and update their care plan.\n- **clinician application**: EHR and clinical systems used by healthcare providers to evaluate patient biometric data and update Electronic Health Records (EHR).\n- **application service**: Cloud-hosted functional services, including patient-facing applications, operations and services, and HDO-facing applications/web portals.\n- **biometric device**: Provisioned, configured, and managed devices (e.g., blood pressure monitor, blood glucose monitoring system, digital weight scale, pulse oximeter) capturing and transmitting patient biometric data.\n- **private blockchain authentication**: Cryptographic authentication mechanism using private blockchain technology for secure data transmission and access control within the telehealth platform provider.\n- **nessus scanner**: Vulnerability scanning tool used for security assessments and penetration testing of the telehealth platform provider's infrastructure and applications.\n- **secure enclave**: Cryptographically secure environment isolating RPM biometric/mobile devices from untrusted patient home networks and establishing encrypted Layer 2 over Layer 3 secure tunnels.\n- **trust enclave**: Not explicitly described in the provided system documentation; however, it is likely a component of the secure enclave or a related concept.\n- **home enclave**: Secure environment established within the patient's home network, isolating RPM biometric devices from untrusted devices and enabling encrypted data transmission to the telehealth platform provider.\n- **telehealth enclave**: Secure environment within the telehealth platform provider's infrastructure, protecting data transmission and access control for RPM biometric devices and patient data.\n- **rpm enclave**: Secure environment within the telehealth platform provider's infrastructure, protecting data transmission and access control for RPM biometric devices and patient data.\n- **blood pressure monitor**: Provisioned, configured, and managed device capturing and transmitting patient biometric data, specifically blood pressure readings.\n- **blood glucose monitoring system**: Provisioned, configured, and managed device capturing and transmitting patient biometric data, specifically blood glucose levels.\n- **digital weight scale**: Provisioned, configured, and managed device capturing and transmitting patient biometric data, specifically weight measurements.\n- **pulse oximeter**: Provisioned, configured, and managed device capturing and transmitting patient biometric data, specifically pulse and oxygen saturation levels.\n- **glucometer**: Provisioned, configured, and managed device capturing and transmitting patient biometric data, specifically blood glucose levels.\n- **cisco firepower version**: Network security system deployed at the HDO perimeter to enforce access control policies and detect anomalies, integrated with Stealthwatch for behavioral analytics.\n- **cisco stealthwatch version**: Network monitoring and behavioral analytics platform deployed at the HDO Security Services VLAN, providing real-time visibility into network activity and detecting anomalies.\n- **cisco ftd**: Network security appliance deployed at the HDO perimeter and internal VLAN zones, enforcing access control policies and protecting against malware and unauthorized traffic.\n- **dashboard**: Web interface provided by the Telehealth Platform Provider, exposing patient data and survey answers to clinicians for evaluation and care plan updates.\n- **cisco umbrella**: Cloud-delivered security platform deployed at the HDO Enterprise Services VLAN, providing DNS/IP filtering, anti-malware protection, and web security for users and devices."
         }
     ],
     "general_context": "The scenario concerns Remote Patient Monitoring (RPM), a telehealth use case in which healthcare providers monitor patients' biometric data directly from their homes. It is aimed at patients with chronic or recurring conditions (e.g., diabetes, cardiac or pulmonary diseases) or used to manage pandemic scenarios and areas with a shortage of healthcare facilities.\n\nThe architecture is distributed across 3 main domains:\n\nPatient Home: where the data is collected.\n\nTelehealth Platform Provider: a cloud-based third-party entity that manages the devices, receives the data, and exposes the dashboards.\n\nHDO (Healthcare Delivery Organization): the healthcare facility (e.g., hospital) where clinicians evaluate the data and update Electronic Health Records (EHR).\n\nData flows bidirectionally (biometric readings, questionnaires, audio/video consultations) via two main pathways: cellular (directly from the device) or broadband (via intermediate gateways/mobile devices).",
