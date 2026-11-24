@@ -22,9 +22,15 @@ Il sistema è stato testato su uno scenario ad alta criticità: la protezione de
 ##  Caratteristiche Principali
 
 - **Assistente Conversazionale a Stati (Risk Agent Executor):**
-  - Routing intelligente degli intenti tramite LLM (`rag_info`, `single_threat_analysis`, `batch_assessment`, `reevaluate_filtered`, `discuss_modify`).
+  - Routing intelligente degli intenti tramite LLM (`rag_info`, `single_threat_analysis`, `batch_assessment`, `reevaluate_filtered`, `discuss_modify`, `asset_extract`).
   - Macchina a stati (`IDLE`, `AWAITING_THREAT_DETAILS`, `DISCUSSING_THREAT`) per raccogliere proattivamente dettagli mancanti (minaccia, asset, contromisure).
   - Possibilità di discutere, rifinire e calibrare le valutazioni direttamente via chat in linguaggio naturale.
+
+- **Pipeline Ibrida di Estrazione Asset (NLP + Clustering Semantico + LLM):**
+  - **Estrazione Linguistica (spaCy):** Identificazione automatica di sostantivi, nomi propri, acronimi e sintagmi nominali composti (`noun_chunks`) dai documenti architetturali di sistema (`.txt`, `.md`) e dal contesto generale, con lemmatizzazione e rimozione delle stopword.
+  - **Embedding e Spherical K-Means Dinamico:** Vettorizzazione dei termini candidati normalizzata con norma L2 e raggruppamento tramite Spherical K-Means (basato su cosine similarity) con selezione adattiva del numero ottimale di cluster $K$ mediante **Silhouette Score**.
+  - **Filtro di Coesione e Fusione (Merge):** Riassorbimento controllato dei cluster singleton affini, scarto dei cluster con bassa coesione semantica interna e fusione iterativa dei cluster con centroidi altamente simili.
+  - **Selezione, Deduplicazione e Descrizione via LLM:** Valutazione dei cluster tramite LLM per isolare esclusivamente gli asset meritevoli di protezione, deduplicazione lessicale e semantica dei nomi estratti e generazione automatica di una descrizione contestuale per ciascun asset sulla base dei documenti caricati.
 
 - **Metodologia di Risk Assessment Rigorosa:**
   - **Classificazione Controlli di Sicurezza:** Suddivisione automatica delle misure fornite in **Preventive** (riducono la probabilità prima dell'evento) e **Mitigative** (riducono l'impatto o agevolano la risposta/ripristino).
@@ -65,7 +71,8 @@ Risk_Analysis_Bot/
 ├── requirements.txt            # Dipendenze Python del progetto
 ├── session_backup.json         # Salvataggio persistente dello stato globale della sessione
 │
-├── core/                       # Motore logico di AI, RAG e Risk Assessment
+├── core/                       # Motore logico di AI, RAG, Asset Extraction e Risk Assessment
+│   ├── asset_extractor.py      # Pipeline di estrazione asset (spaCy, Spherical K-Means, LLM)
 │   ├── llm_chains.py           # Factory per la creazione delle catene LangChain strutturate
 │   ├── rag_engine.py           # Gestione ChromaDB, text-splitters ed embeddings
 │   └── risk_analyzer.py        # Logica di calcolo del rischio, iterazioni e sintesi
@@ -80,6 +87,7 @@ Risk_Analysis_Bot/
 │   └── session_repository.py   # Serializzazione e deserializzazione JSON dello stato dell'applicazione
 │
 ├── chats/                      # Cronologie conversazionali salvate ed esportabili (.json)
+├── system_documents/           # Documenti di sistema e architettura per l'estrazione asset (.txt, .md)
 ├── documents_rag/              # Knowledge Base: tassonomie NIST, scenari e policy Smart Hospital (.txt)
 └── chroma_db/                  # Database vettoriale locale persistente generato da ChromaDB
 ```
@@ -118,19 +126,21 @@ cd Risk_Analysis_Bot
   source .venv/bin/activate
   ```
 
-### 3. Installa le dipendenze:
+### 3. Installa le dipendenze e il modello linguistico spaCy:
 ```bash
 pip install -r requirements.txt
+python -m spacy download en_core_web_sm
 ```
 
 ### 4. Configura i parametri (`config.py`):
 Modifica il file `config.py` in base al tuo ambiente:
 ```python
 BASE_URL = "http://localhost:11434"      # Indirizzo del server Ollama
-MODEL_NAME = "llama3.1"                 # Modello LLM per analisi e chat
-EMBEDDING_MODEL = "nomic-embed-text"    # Modello di embedding per ChromaDB
+MODEL_NAME = "llama3.1"                 # Modello LLM per analisi, estrazione asset e chat
+EMBEDDING_MODEL = "nomic-embed-text"    # Modello di embedding per ChromaDB e clustering asset
 TEMPERATURE = 0.1                       # Bassa per garantire determinismo e riproducibilità
 CORE_KB_DIR = "./knowledge_base"         # Directory della knowledge base iniziale
+ASSET_DOCS_DIR = "./system_documents"   # Directory dei documenti di sistema per l'estrazione asset
 CHROMA_PERSIST_DIR = "./chroma_db"      # Cartella di persistenza di Chroma
 SESSION_FILE = "session_backup.json"    # File di backup della sessione
 ```
@@ -154,6 +164,7 @@ L'interfaccia web si aprirà automaticamente nel browser all'indirizzo `http://l
 - **Contesto Generale:** Inserisci informazioni relative all'organizzazione (es. settore ospedaliero, infrastruttura cloud, sede geografica).
 - **Importa Minacce (JSON):** Carica un elenco di minacce strutturato (vedi sezione *Formato File JSON*).
 - **Aggiorna Contesto RAG:** Carica documenti di testo (`.txt`) contenenti policy aziendali, piani di emergenza o specifiche tecniche per indicizzarli nel Vector Store.
+- **Documenti di Sistema per Estrazione Asset:** Carica file `.txt` o `.md` che descrivono l'architettura del sistema; i file vengono salvati in `system_documents/` per alimentare la pipeline di individuazione degli asset.
 - **Regole di Valutazione:** Definisci eventuali vincoli o policy personalizzate per il calcolo di Likelihood e Impact.
 - **Numero Iterazioni per Minaccia:** Imposta quante volte il modello deve valutare ciascuna minaccia (default: `1`). Impostando un valore $>1$ il sistema calcola la **moda statistica** e genera una sintesi motivazionale coerente.
 
@@ -162,6 +173,9 @@ Puoi interagire in linguaggio naturale con l'assistente per:
 - **Analisi di una singola minaccia:**
   > *"Analyze the threat: Ransomware attack on the electronic health record (EHR) server with daily offline backups and perimeter next-gen firewall."*  
   Se mancano campi necessari, l'agente chiederà esplicitamente le informazioni mancanti.
+- **Estrazione Automatica degli Asset:**
+  > *"Extract all protectable assets from the system documentation."*  
+  Avvia la pipeline di estrazione e mostra il riepilogo delle metriche intermedie (termini candidati, $K$ ottimale, Silhouette Score, cluster selezionati) insieme alla lista degli asset estratti e descritti.
 - **Domande sulla Knowledge Base (RAG):**
   > *"What are the internal recovery procedures and resilience requirements in case of a power blackout in the ICU?"*
 - **Esecuzione Batch:**
@@ -179,6 +193,11 @@ Puoi interagire in linguaggio naturale con l'assistente per:
   - Motivazioni analitiche di Likelihood e Impact.
   - Punteggio totale con badge visivo.
 - **Override Manuale:** Modifica puntualmente i valori di Likelihood e Impact e premi **"Salva e applica modifiche manuali"**.
+
+### 4. Asset Estratti
+- Avvia direttamente dall'interfaccia la pipeline di estrazione automatica tramite il pulsante **"Estrai Asset dai Documenti di Sistema"**.
+- Consulta la lista globale degli asset censiti completa delle relative descrizioni contestuali generate a partire dalla documentazione di sistema.
+- Aggiungi manualmente nuovi asset con descrizione personalizzata, rimuovi singole voci o svuota l'intera lista globale.
 
 ---
 
@@ -214,4 +233,6 @@ Il caricamento delle minacce da file richiede un array JSON contenente esclusiva
 - **[LangChain](https://www.langchain.com/)**: Catene prompt/LLM e orchestrazione con output strutturato Pydantic.
 - **[Ollama](https://ollama.com/)**: Runtime locale/privato per l'inferenza di modelli open weights (LLaMA 3.1) a garanzia di sovranità e privacy dei dati (GDPR-compliant).
 - **[ChromaDB](https://www.trychroma.com/)**: Vector store open-source ad alte prestazioni per la memorizzazione e il recupero semantico della Knowledge Base.
+- **[spaCy](https://spacy.io/)**: Libreria NLP per l'analisi morfosintattica, lemmatizzazione ed estrazione dei sintagmi nominali candidati dai documenti di sistema.
+- **[scikit-learn](https://scikit-learn.org/) & [NumPy](https://numpy.org/)**: Normalizzazione L2, inizializzazione K-Means++, calcolo della cosine similarity e valutazione del Silhouette Score per il clustering semantico degli asset.
 - **[Pydantic](https://docs.pydantic.dev/)**: Validazione dei dati, conformità degli schemi e tipizzazione rigorosa.

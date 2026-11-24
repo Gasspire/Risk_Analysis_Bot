@@ -6,10 +6,10 @@ EMBEDDING_MODEL = "nomic-embed-text"
 TEMPERATURE = 0.1
 
 CORE_KB_DIR = "./knowledge_base"
+ASSET_DOCS_DIR = "./system_documents"
 CHROMA_PERSIST_DIR = "./chroma_db"
 SESSION_FILE = "session_backup.json"
 CHATS_DIR = "./chats"
 
 
 DEFAULT_CONTEXT = ""
-

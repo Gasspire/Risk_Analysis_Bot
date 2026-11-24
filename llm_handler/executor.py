@@ -1,55 +1,83 @@
-from typing import Tuple, cast
+from typing import Tuple, Optional, cast
 from models import SessionStateData, BotStateEnum, IntentOutput, IntentType
 from core.rag_engine import RAGEngine
 from core.risk_analyzer import RiskAnalyzer
 from core.llm_chains import LLMChainFactory
+from core.asset_extractor import AssetExtractor
 from llm_handler.handlers import (
     handle_rag_info,
     handle_single_threat_analysis,
     handle_batch_assessment,
     handle_reevaluate_filtered,
     handle_discuss_modify,
+    handle_asset_extract,
 )
+
 
 class RiskAgentExecutor:
     """
     Orchestratore puro per la gestione del dialogo e delle operazioni del Bot.
     Riceve lo stato immutabile o mutabile e restituisce la risposta formattata e lo stato finale aggiornato.
     """
+
     def __init__(
         self,
         chain_factory: LLMChainFactory,
         rag_engine: RAGEngine,
         risk_analyzer: RiskAnalyzer,
+        asset_extractor: Optional[
+            AssetExtractor
+        ] = None,  # Se non passato inizializzo io
     ):
-        self.chain_factory = chain_factory
-        self.rag_engine = rag_engine
-        self.risk_analyzer = risk_analyzer
-        self.intent_chain = self.chain_factory.get_intent_chain()
-
-
+        self.chain_factory = (
+            chain_factory  # Factory che gli passa poi la catena da utilizzare
+        )
+        self.rag_engine = rag_engine  # Engine RAG
+        self.risk_analyzer = risk_analyzer  # Classe che contiene la logica dell'analisi
+        self.asset_extractor = asset_extractor or AssetExtractor(
+            chain_factory=chain_factory
+        )
+        self.intent_chain = (
+            self.chain_factory.get_intent_chain()
+        )  # mi prendo solo la catena del riconoscitore
 
     def process_message(
         self, user_input: str, state: SessionStateData
     ) -> Tuple[str, SessionStateData]:
-        has_pending = state.pending_threat is not None
-        has_active_discussion = state.active_threat_id is not None
-        
+        has_pending = (
+            state.pending_threat is not None
+        )  # Controllo se c'è una minaccia in sospeso
+        has_active_discussion = (
+            state.active_threat_id is not None
+        )  # Controllo se ci sono discussioni attive
+
         try:
-            intent_res: IntentOutput = cast(IntentOutput,self.intent_chain.invoke({"input": user_input}))
-            intent = intent_res.intent
-            entities = intent_res.extracted_entities or {}
+            intent_res: IntentOutput = cast(
+                IntentOutput,
+                self.intent_chain.invoke(
+                    {"input": user_input}
+                ),  # Invoco il riconoscitore di intenti
+            )
+            intent = intent_res.intent  # prendo l'intento
+            entities = (
+                intent_res.extracted_entities or {}
+            )  # prendo le eventuali entità estratte
 
         except Exception as e:
             print(f"Routing error: {e}")
             intent = IntentType.UNKNOWN
             entities = {}
 
-        if has_pending:
+        if (
+            has_pending
+        ):  # se c'è una minaccia in sospeso, assegna l'intento di analisi singola
             intent = IntentType.SINGLE_THREAT_ANALYSIS
-        elif has_active_discussion:
+        elif (
+            has_active_discussion
+        ):  # se ci sono discussioni attive, assegna l'intento di discussione
             intent = IntentType.DISCUSS_MODIFY
 
+        # In base all'intento, scelgo l'handler
         if intent == IntentType.SINGLE_THREAT_ANALYSIS:
             output_text, updated_state = handle_single_threat_analysis(
                 user_input=user_input,
@@ -79,6 +107,7 @@ class RiskAgentExecutor:
                 risk_analyzer=self.risk_analyzer,
                 entities=entities,
                 user_input=user_input,
+                chain_factory=self.chain_factory,
             )
 
         elif intent == IntentType.DISCUSS_MODIFY:
@@ -87,12 +116,21 @@ class RiskAgentExecutor:
                 state=state,
                 chain_factory=self.chain_factory,
                 entities=entities,
+                risk_analyzer=self.risk_analyzer,
             )
+        elif intent == IntentType.ASSET_EXTRACT:
+            output_text, updated_state = handle_asset_extract(
+                state=state,
+                asset_extractor=self.asset_extractor,
+            )
+
         else:
             output_text = "Intent not recognized. Please reformulate your request."
             updated_state = state
 
-        updated_state.chat_history.append({"role": "user", "content": user_input})
+        updated_state.chat_history.append(
+            {"role": "user", "content": user_input}
+        )  # Aggiorno la chat
         updated_state.chat_history.append({"role": "assistant", "content": output_text})
 
         return output_text, updated_state

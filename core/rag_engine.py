@@ -59,9 +59,7 @@ class RAGEngine:
 
         return self._vectorstore
 
-    def add_documents_from_texts(
-        self, text_sources: List[dict]
-    ) -> int:
+    def add_documents_from_texts(self, text_sources: List[dict]) -> int:
         """
         Aggiunge al vectorstore una lista di testi forniti come dizionari.
         Formato di ciascun elemento: {"content": str, "source_name": str}

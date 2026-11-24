@@ -14,7 +14,9 @@ class ChatRepository:
     def _sanitize_filename(self, name: str) -> str:
         """Rimuove caratteri non validi per i filesystem Windows/Linux."""
         cleaned = re.sub(r'[\\/*?:"<>|]', "", name).strip()
-        return cleaned if cleaned else f"chat_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        return (
+            cleaned if cleaned else f"chat_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        )
 
     def _get_path(self, name: str) -> str:
         sanitized = self._sanitize_filename(name)
@@ -31,14 +33,15 @@ class ChatRepository:
             return []
 
         files = [
-            f for f in os.listdir(self.chats_dir)
+            f
+            for f in os.listdir(self.chats_dir)
             if f.endswith(".json") and os.path.isfile(os.path.join(self.chats_dir, f))
         ]
 
         # Ordina per tempo di ultima modifica decrescente
         files.sort(
             key=lambda f: os.path.getmtime(os.path.join(self.chats_dir, f)),
-            reverse=True
+            reverse=True,
         )
 
         return [os.path.splitext(f)[0] for f in files]
@@ -108,7 +111,10 @@ class ChatRepository:
         """
         clean_new = self._sanitize_filename(new_name).strip()
         if not clean_new:
-            return False, "Il nuovo nome non è valido o contiene solo caratteri non ammessi."
+            return (
+                False,
+                "Il nuovo nome non è valido o contiene solo caratteri non ammessi.",
+            )
 
         old_path = self._get_path(old_name)
         new_path = self._get_path(clean_new)
@@ -127,5 +133,3 @@ class ChatRepository:
             return True, clean_new
         except Exception as e:
             return False, f"Errore durante la rinomina del file: {e}"
-
-

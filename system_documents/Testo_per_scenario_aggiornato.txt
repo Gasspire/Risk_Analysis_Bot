@@ -1,0 +1,147 @@
+3 Approach
+RPM is a telehealth use case wherein healthcare providers can use internet-based technologies to track biometric data from the patient’s home. Patients may have chronic or recurring health conditions (such as diabetes or cardiac and pulmonary conditions) that require regular clinical monitoring; however, in-person visitation may be impractical or undesirable. Technology enables capturing biometric and patient-generated data, having those data relayed to systems that clinicians may use to evaluate a patient, and bidirectional communication of the data between the patient and clinician. RPM may be an appropriate means for performing healthcare in pandemic scenarios or to address patients who may live in parts of the country where healthcare settings or practitioners are scarce.
+
+3.3 Assumptions and Policies
+- RPM architecture includes deploying components to three distinct domains: the patient home, the telehealth platform provider, and the HDO (Healthcare Delivery Organization).
+- HDOs are regulated entities and must comply with federal, state, and local laws and regulations (e.g., HIPAA). In complying with laws and regulations, HDOs have implemented adequate privacy and security programs that include activities to address risk to both the organization and individuals when deploying an RPM architecture. Controls that have been implemented in accordance with laws and regulations provide an enterprise scope referred to as pervasive controls.
+- The telehealth platform provider is a third-party entity distinct from the patient and the HDO, and maintains an adequate privacy and security control environment.
+- The telehealth platform provider provisions, configures, and manages the life cycle of patient home-deployed equipment.
+- Patient-provided ("bring your own device" / BYOD) biometric devices are excluded from the RPM architecture. Only biometric devices procured, configured, and managed by telehealth platform providers are provisioned authenticators and credentials for the RPM solution.
+- The patient home may have different communications options such as cellular data connectivity or broadband internet.
+- RPM solutions emphasize collaboration. An RPM program’s efficacy depends on the patient, the telehealth platform provider, and the HDO to participate in the program and apply adequate privacy and security practices. The HDO does not define the control environments for the telehealth platform provider or the patient home. Each participant needs sufficient awareness and exercises appropriate control over components that operate in their domain.
+- Patient engagement and awareness training activities are provided by the HDO and telehealth platform provider to give the patient a clear understanding of privacy practices, appropriate equipment use, and data sharing expectations.
+- Responsibility for overall risk management remains with the HDO, which must perform due diligence and audit/evaluate third-party telehealth platform providers before establishing a relationship.
+
+3.6 Technologies, Assets, and Implemented Security Controls
+The following list details the components, specific products, functions, and domains implemented in the RPM ecosystem:
+
+- Component/Capability: Telehealth Platform Provider (Domains: Patient Home, Telehealth Platform Provider)
+  Product: Accuhealth Evelyn; Vivify Pathways Home; Vivify Pathways Care Team Portal
+  Function: Provides role-based user access control (RBAC); performs asset management for the provisioned devices; transmits health information to the platform; connects patients and physicians via web/audio/videoconferencing.
+
+- Component/Capability: Risk Assessment Controls (Domain: HDO)
+  Product: Tenable.sc Vulnerability Management Version 5.13.0 with Nessus scanner
+  Function: Provides on-premises centralized vulnerability management with multiple scanners across HDO VLANs; provides vulnerability prioritization and risk scores to guide patching and updates.
+
+- Component/Capability: Identity Management, Authentication, and Access Control (Domain: HDO)
+  Product: Active Directory (AD) on Windows Server Domain Controller (domain: hdo.trpm)
+  Function: Authenticates and authorizes users and computers in the HDO domain and across multiple applications within the environment.
+
+- Component/Capability: Identity Management, Authentication, and Access Control (Domain: HDO)
+  Product: Cisco Firepower Version 6.3.0 (Firepower Management Console - FMC and Firepower Threat Defense - FTD)
+  Function: Provides centralized control over network and communication; provides network visibility, intrusion prevention, network segmentation (VLANs with default Block All Traffic policies), DHCP services, and policy-based network protection.
+
+- Component/Capability: Identity Management, Authentication, and Access Control (Domain: HDO)
+  Product: Cisco Umbrella (with two Forwarder appliances)
+  Function: Provides Domain Name System (DNS) and Internet Protocol (IP) layer security, content/application filtering, and advanced malware protection (AMP) by blocking malicious domains before connections are established.
+
+- Component/Capability: Identity Management, Authentication, and Access Control (Domain: HDO)
+  Product: Cisco Stealthwatch Version 7.0.0 (Stealthwatch Management Console - SMC and Flow Collector)
+  Function: Provides insight into who and what is on the network; ingests NetFlow traffic from Cisco FTD; provides network behavioral analysis through machine learning and global threat intelligence; detects anomalies (e.g., reconnaissance scans) and malware in encrypted traffic.
+
+- Component/Capability: Identity Management, Authentication, and Access Control (Domain: Telehealth Platform Provider)
+  Product: Onclave Zero Trust Platform Version 1.1.0
+  Function: Leverages private blockchain technology and key management mechanisms to authenticate and manage valid endpoints within a Zero Trust Architecture.
+
+- Component/Capability: Data Security (Domains: Patient Home, Telehealth Platform Provider, HDO)
+  Product: Accuhealth; Vivify Health
+  Function: Ensures that data-in-transit are protected (using TLS 1.2 for portal connections and encrypted cellular/Bluetooth links) and data-at-rest are protected (using AES-256 encryption).
+
+- Component/Capability: Data Security (Domain: Telehealth Platform Provider)
+  Product: Onclave Secure IoT Bridge Version 1.1.0
+  Function: Provides trusted and secure communication between Onclave gateways; establishes encrypted Layer 2 over Layer 3 secure tunnels between Onclave bridges and gateways.
+
+- Component/Capability: Data Security (Domains: Patient Home, Telehealth Platform Provider)
+  Product: Onclave Secure IoT Gateway Version 1.1.0 (Wireless Onclave Home Gateway and Onclave Telehealth Gateway)
+  Function: Forms the basis of a cryptographically secure enclave; isolates RPM biometric/mobile devices from untrusted patient home networks; establishes encrypted Layer 2 over Layer 3 secure tunnels (AES-256) between trusted gateways.
+
+- Component/Capability: Anomalies and Events and Security Continuous Monitoring (Domain: HDO)
+  Product: LogRhythmXDR Version 7.4.9 and LogRhythm NetworkXDR Version 4.0.2 (with System Monitor Agents)
+  Function: Acts as a Security Incident and Event Management (SIEM) tool; aggregates log files from endpoints and network devices; performs behavioral analytics and AI Engine rule correlation; monitors user activity, file integrity, and unauthorized network traffic (e.g., unencrypted HTTP); provides dashboards and alerts.
+
+Additional Ecosystem Assets by Domain:
+- Patient Home Domain: Biometric devices (blood pressure monitors, blood glucose monitoring systems/glucometers, digital weight scales, pulse oximeters, activity trackers), RPM interface devices (provisioned mobile phones or tablets running mobile apps, or laptops/desktops), patient-owned Wi-Fi access points and broadband internet routers, and unmanaged personally-owned devices (personal computers, smartphones, connected home devices) or guest devices.
+- Telehealth Platform Provider Domain: Cloud-hosted functional services (patient-facing applications, operations and services, HDO-facing applications/web portals), data storage servers, and biometric device vendor storage servers.
+- HDO Domain: Physician/clinician endpoints (clinical workstations, mobile devices), Electronic Health Record / Health Information System (EHR/HIS), enterprise servers, databases, and security appliances.
+
+4 Architecture
+The solution deploys components across three domains: the patient home, the telehealth platform provider, and the HDO.
+- Patient Home: The environment where the patient lives and uses provisioned biometric monitoring devices and interface devices to communicate with their care team, alongside unrelated personal devices.
+- Telehealth Platform Provider: Cloud-hosted infrastructure maintaining virtual or physical servers to manage, maintain, and receive data communications from the patient home and present them to the HDO.
+- HDO: Enterprise environment including workstations, clinical systems, and security infrastructure to receive/interpret patient data and manually record patient interactions in an Electronic Health Record (EHR) system (note: automated direct ingestion from the RPM platform to the EHR is not implemented in this baseline architecture).
+
+High-Level Network Paths (Figure 4-1):
+- Path 1: Biometric devices communicate directly with the telehealth platform provider (e.g., via built-in cellular connectivity or direct broadband).
+- Path 2: Patients use a provisioned interface device (e.g., a mobile app on a tablet) to collect data from the biometric devices (via Bluetooth/PAN) and transmit the aggregated data and survey responses to the telehealth platform provider.
+
+4.1 Layering the Architecture
+The distributed architecture is stratified into three layers intersecting each of the three domains:
+1. Business Layer:
+   - Patient Home: Biometric devices and interface devices that capture and relay biometric data and enable patient-clinician communication.
+   - Telehealth Platform Provider: Patient applications, HDO dashboards, and services facilitating patient data handling and web/audio/videoconferencing.
+   - HDO: EHR, clinical systems, and clinician applications used to support the RPM program.
+2. Security Layer:
+   - Patient Home: Patient awareness and training, plus protective technology (e.g., cellular isolation or Onclave gateway segregating RPM traffic from personally-owned devices on home Wi-Fi).
+   - Telehealth Platform Provider: Asset management, awareness and training, data security (encryption, certificates), and protective technology.
+   - HDO: Access control (AD, Firepower), anomalies and events monitoring (LogRhythm, Stealthwatch), data security, and protective technology (Umbrella, Tenable).
+3. Infrastructure Layer:
+   - Patient Home: Cellular networks, patient-operated Wi-Fi access points, routers, and switches for broadband connectivity.
+   - Telehealth Platform Provider: Cloud services (network and server components).
+   - HDO: Network management and enterprise network services (Active Directory, DNS, firewalls, switches).
+
+4.2 High-Level Architecture Communications Pathways
+Six communication pathways (A through F) connect the patient home to the telehealth platform provider:
+
+4.2.1 Cellular Data Pathways
+Telehealth platform providers provision devices with preconfigured SIM cards (4G LTE) to ensure ease of use, connectivity, and network isolation from untrusted home Wi-Fi networks. Unauthorized individuals cannot remove or alter the SIM cards, and Wi-Fi capabilities are disabled on these cellular-only devices.
+- Path A: The biometric device has a built-in cellular module and SIM card. It sends data directly over cellular networks to the telehealth platform provider, without an intermediate RPM interface device.
+- Path B: The biometric device forwards data via Bluetooth to a provisioned RPM interface device (mobile phone or tablet) equipped with a SIM card and patient app, which then transmits data over cellular networks to the telehealth platform provider.
+
+4.2.2 Broadband Pathways
+Devices leverage broadband internet connectivity provisioned at the patient home via Wi-Fi and a patient-provided internet router:
+- Path C: The biometric device sends data via Bluetooth to an RPM interface device (tablet/phone), which communicates with the telehealth platform provider over the patient's home broadband connection without add-on security gateways.
+- Path D: Same local flow as Path C (biometric device -> Bluetooth -> RPM interface device), but external transmissions over home Wi-Fi/broadband traverse an add-on security control (Layer 2 over Layer 3 gateway) to reach the telehealth platform provider.
+- Path E: Like Path A, the biometric device communicates directly over home Wi-Fi/broadband, traversing an add-on security control (Layer 2 over Layer 3 gateway) to reach the telehealth platform provider.
+- Path F: The biometric device connects directly to the home Wi-Fi/broadband router and sends data over the public internet to the telehealth platform provider with no intermediate interface device or security gateway.
+
+4.3 Data and Process Flows
+The RPM ecosystem operates through two primary operational dataflow sequences:
+
+Dataflow Option 1 (Direct Device-to-Vendor Flow - Narrative and Sequence):
+1. Patient uses the biometric device, which collects biometric readings and stores them locally on nonvolatile media.
+2. The biometric device transmits the patient data (without patient PII, using only device identifiers) to the Biometric Device Vendor's local storage server.
+3. The Telehealth Platform Provider connects to the Device Vendor's storage server and pulls the patient data into its own storage server (Exchange Patient Data).
+4. The Telehealth Platform Provider evaluates the data, correlates the device identifier with the specific patient and primary care provider, and checks clinical thresholds.
+5. Conditional Flow [if data_over_threshold = true]: The Telehealth Platform Provider sends an immediate alert to the Clinician.
+6. The Clinician connects from an HDO workstation to the Telehealth Platform Provider's web server (via TLS 1.2) to access and view the patient's dashboard.
+7. The Clinician evaluates the patient data, modifies the care plan if necessary, manually updates the patient's EHR in the HDO, and conducts a video- or audioconference with the patient via the platform to discuss updates.
+
+Dataflow Option 2 (Mobile Interface Device / Field Gateway Flow - Narrative and Sequence):
+1. Patient uses one or more biometric devices, which collect medical readings and store them locally.
+2. The biometric devices transmit the readings (via Bluetooth/PAN) to the provisioned RPM Mobile Device (tablet/smartphone), which stores the data locally.
+3. The Telehealth Platform Provider sends program survey questions to the patient via the Mobile Device; the patient answers and submits the survey responses.
+4. The patient uses the Mobile Device app to push the grouped biometric readings and survey responses to the Telehealth Platform Provider (Exchange Patient Data).
+5. The Telehealth Platform Provider evaluates and correlates the data to the patient.
+6. Conditional Flow [if data_over_threshold = true]: The Telehealth Platform Provider sends an alert to the Clinician.
+7. The Clinician accesses the Telehealth Platform Provider's dashboard from the HDO, evaluates the data and survey answers, manually updates the patient's EHR, and contacts the patient via video- or audioconference on the mobile device to update their care plan.
+
+4.4 & 4.5 Security Capabilities and Final Lab Architecture
+To secure the distributed architecture, the following technical controls and network segmentation are implemented:
+
+1. Patient Home & Telehealth Enclaves (Final Architecture):
+   - Home One (Accuhealth): Biometric devices (blood pressure monitor, blood glucose monitor, digital scale) communicate directly over 4G LTE cellular networks (using asymmetric encryption between device and cell tower) to the cloud-hosted Accuhealth platform (Path A).
+   - Home Two (Vivify Health): Biometric devices communicate via Bluetooth to a centrally managed mobile device/tablet (locked down to prevent unauthorized configuration changes or app installations), which communicates over 4G LTE cellular networks to the cloud-hosted Vivify Health platform (Path B).
+   - Home Three (Broadband + Zero Trust Enclave): Biometric devices and a Vivify mobile interface device connect via Wi-Fi (VLAN 1332) to a patient Home Router/Firewall, passing through a Wireless Onclave Secure IoT Gateway (Home Enclave, VLAN 1350). This establishes an encrypted Layer 2 over Layer 3 tunnel (AES-256, private blockchain authentication, NIST SP 800-57 key management) to the Onclave Telehealth Gateway (Telehealth Enclave, VLAN 1349) protecting the simulated cloud Telehealth Platform Provider (Path D). Traffic from untrusted home devices is completely blocked from reaching the RPM enclave.
+
+2. HDO Network Zoning and Security Capabilities (VLAN 1316):
+   The HDO environment is segmented into six isolated VLAN zones protected by a perimeter and internal Cisco Firepower Threat Defense (FTD) firewall configured with a default "Block All Traffic" access control policy:
+   - Enterprise Services (VLAN 1327): Hosts Active Directory Domain Controller (AD/DC) for user/device authentication and RBAC, plus Cisco Umbrella Forwarders for DNS/IP filtering and anti-malware protection.
+   - HIS Services (VLAN 1328): Hosts Health Information System web/application services.
+   - Remote Services (VLAN 1329): Hosts remote access and external communication servers.
+   - Databases (VLAN 1330): Hosts clinical and operational databases.
+   - Clinical Workstations (VLAN 1347): Hosts clinician Windows workstations and servers monitored by LogRhythm System Monitor Agents for user logon/process activity, file integrity monitoring (FIM), and unauthorized outbound HTTP traffic detection.
+   - Security Services (VLAN 1348): Hosts Tenable.sc with Nessus scanner (for periodic host discovery and vulnerability scanning across all HDO VLANs), Cisco Stealthwatch Management Console & Flow Collector (for NetFlow behavioral analytics and anomaly/recon detection), and LogRhythmXDR / NetworkXDR SIEM (for centralized log aggregation and automated alerting).
+
+5.2 & 5.3 Pervasive Controls and Telehealth Provider Responsibilities
+- Pervasive Controls: HDOs and telehealth platform providers are assumed to maintain foundational enterprise programs prior to RPM deployment, including workforce onboarding/identity proofing, account lifecycle management, formal asset inventory and patch management, data retention and disposal policies, privacy notices and explicit patient consent/withdrawal workflows, and incident response/business continuity plans.
+- Telehealth Platform Provider Controls: Providers authenticate device sessions via unique Device IDs, enforce unique user credentials and Role-Based Access Control (RBAC) on clinical portals, protect all portal web sessions with TLS 1.2, encrypt all stored patient health data with AES-256, and delay associating biometric readings with patient PII until clinical analytics are required (disassociated processing).

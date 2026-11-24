@@ -1,6 +1,6 @@
 from enum import Enum
 from typing import List, Dict, Any, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class BotStateEnum(str, Enum):
@@ -15,6 +15,7 @@ class IntentType(str, Enum):
     BATCH_ASSESSMENT = "batch_assessment"
     REEVALUATE_FILTERED = "reevaluate_filtered"
     DISCUSS_MODIFY = "discuss_modify"
+    ASSET_EXTRACT = "asset_extract"
     UNKNOWN = "unknown"
 
 
@@ -24,7 +25,7 @@ class IntentOutput(BaseModel):
     )
     extracted_entities: Dict[str, Any] = Field(
         default_factory=dict,
-        description="Any extracted entities from the user prompt like threat name, affected assets, or security measures."
+        description="Any extracted entities from the user prompt like threat name, affected assets, or security measures.",
     )
 
 
@@ -42,11 +43,20 @@ class ThreatRecord(BaseModel):
     impact_reasoning: str = "Da valutare."
 
 
+class ExtractedAssetRecord(BaseModel):
+    name: str = Field(description="The canonical name of the protectable asset.")
+    description: str = Field(
+        default="Descrizione non disponibile.",
+        description="A concise 1-2 sentence description of the asset's role and function based strictly on the system documents.",
+    )
+
+
 class SessionStateData(BaseModel):
     bot_state: BotStateEnum = BotStateEnum.IDLE
     pending_threat: Optional[Dict[str, Optional[str]]] = None
     active_threat_id: Optional[str] = None
     assessment_results: List[ThreatRecord] = Field(default_factory=list)
+    extracted_assets: List[ExtractedAssetRecord] = Field(default_factory=list)
     chat_history: List[Dict[str, str]] = Field(default_factory=list)
     general_context: str = ""
     custom_rules_likelihood: str = ""
@@ -55,32 +65,90 @@ class SessionStateData(BaseModel):
 
 
 class MeasureAnalysis(BaseModel):
-    measure_name: str = Field(description="The exact name of the security measure from the input.")
-    is_preventive: bool = Field(description="True if the measure acts BEFORE the incident to reduce its probability.")
-    preventive_rationale: str = Field(description="Brief explanation of why it acts preventively, or 'N/A' if it does not.")
-    is_mitigative: bool = Field(description="True if the measure acts DURING or AFTER the incident (including detection) to reduce damage.")
-    mitigative_rationale: str = Field(description="Brief explanation of why it acts mitigatively, or 'N/A' if it does not.")
+    measure_name: str = Field(
+        description="The exact name of the security measure from the input."
+    )
+    is_preventive: bool = Field(
+        description="True if the measure acts BEFORE the incident to reduce its probability."
+    )
+    preventive_rationale: str = Field(
+        description="Brief explanation of why it acts preventively, or 'N/A' if it does not."
+    )
+    is_mitigative: bool = Field(
+        description="True if the measure acts DURING or AFTER the incident (including detection) to reduce damage."
+    )
+    mitigative_rationale: str = Field(
+        description="Brief explanation of why it acts mitigatively, or 'N/A' if it does not."
+    )
 
 
 class TypeOfMeasures(BaseModel):
-    measures: List[MeasureAnalysis] = Field(description="List containing the analysis for EVERY security measure provided in the input.")
+    measures: List[MeasureAnalysis] = Field(
+        description="List containing the analysis for EVERY security measure provided in the input."
+    )
 
 
 class ImpactOutput(BaseModel):
-    worst_case_scenario: str = Field(description="Describe the worst credible physical, logical, or data damage to the explicitly affected assets, assuming the threat is fully successful.")
-    mitigative_controls_evaluation: str = Field(description="Evaluate if the provided mitigative controls actually limit the physical/business damage, or if they merely detect/record it.")
-    human_safety_and_business_impact: str = Field(description="Assess the specific consequences on human life, physical property, data confidentiality, and organizational continuity based on the mitigated worst-case scenario.")
-    impact_reasoning: str = Field(description="A concise summary (max 60 words) combining the previous three points to justify the final impact level.")
-    impact_score: int = Field(description="Integer value from 1 to 5 representing the final impact score based strictly on the scales.")
+    worst_case_scenario: str = Field(
+        description="Describe the worst credible physical, logical, or data damage to the explicitly affected assets, assuming the threat is fully successful."
+    )
+    mitigative_controls_evaluation: str = Field(
+        description="Evaluate if the provided mitigative controls actually limit the physical/business damage, or if they merely detect/record it."
+    )
+    human_safety_and_business_impact: str = Field(
+        description="Assess the specific consequences on human life, physical property, data confidentiality, and organizational continuity based on the mitigated worst-case scenario."
+    )
+    impact_reasoning: str = Field(
+        description="A concise summary (max 60 words) combining the previous three points to justify the final impact level."
+    )
+    impact_score: int = Field(
+        description="Integer value from 1 to 5 representing the final impact score based strictly on the scales."
+    )
 
 
 class LikelihoodOutput(BaseModel):
-    historical_frequency_analysis: str = Field(description="Analyze the natural or historical frequency of the threat. Is it continuous, frequent, occasional, or rare?")
-    preventive_controls_evaluation: str = Field(description="Evaluate how the explicitly provided preventive controls obstruct the threat.")
-    ease_of_execution: str = Field(description="Assess how easily the threat can materialize given the specific environment and remaining vulnerabilities.")
-    likelihood_reasoning: str = Field(description="A concise summary (max 60 words) combining the previous three points to justify the final likelihood level.")
-    likelihood_score: int = Field(description="Integer value from 1 to 5 representing the final likelihood score based strictly on the scales.")
+    historical_frequency_analysis: str = Field(
+        description="Analyze the natural or historical frequency of the threat. Is it continuous, frequent, occasional, or rare?"
+    )
+    preventive_controls_evaluation: str = Field(
+        description="Evaluate how the explicitly provided preventive controls obstruct the threat."
+    )
+    ease_of_execution: str = Field(
+        description="Assess how easily the threat can materialize given the specific environment and remaining vulnerabilities."
+    )
+    likelihood_reasoning: str = Field(
+        description="A concise summary (max 60 words) combining the previous three points to justify the final likelihood level."
+    )
+    likelihood_score: int = Field(
+        description="Integer value from 1 to 5 representing the final likelihood score based strictly on the scales."
+    )
 
 
 class SynthesisOutput(BaseModel):
-    synthesized_reasoning: str = Field(description="A coherent, single reasoning of max 80 words that strictly justifies the provided Final Score, ignoring conflicting information.")
+    synthesized_reasoning: str = Field(
+        description="A coherent, single reasoning of max 80 words that strictly justifies the provided Final Score, ignoring conflicting information."
+    )
+
+
+class ClusterAssetEvaluation(BaseModel):
+    cluster_id: int = Field(
+        description="The integer ID of the evaluated semantic cluster."
+    )
+    contains_protectable_assets: bool = Field(
+        description="True if the cluster contains hardware, software, data, network, facility, or human/clinical assets that require protection in a risk assessment."
+    )
+    extracted_assets: List[str] = Field(
+        description="Clean, canonical names of the protectable assets identified within this cluster (empty list if contains_protectable_assets is False)."
+    )
+
+
+class AssetExtractionOutput(BaseModel):
+    clusters_evaluation: List[ClusterAssetEvaluation] = Field(
+        description="Non-empty list containing the evaluation for EVERY semantic cluster provided in the input."
+    )
+
+
+class AssetDescriptionsOutput(BaseModel):
+    assets: List[ExtractedAssetRecord] = Field(
+        description="List containing each input asset name paired with its context-grounded description."
+    )
