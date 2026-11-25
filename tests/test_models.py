@@ -107,6 +107,8 @@ def test_llm_output_models():
     ]
 
     desc_out = AssetDescriptionsOutput(
-        assets=[ExtractedAssetRecord(name="App Server", description="Handles requests.")]
+        assets=[
+            ExtractedAssetRecord(name="App Server", description="Handles requests.")
+        ]
     )
     assert desc_out.assets[0].name == "App Server"

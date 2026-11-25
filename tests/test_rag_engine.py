@@ -31,13 +31,17 @@ def test_get_vectorstore_initializes_from_core_kb(
     persist_dir = tmp_path / "empty_chroma"
     kb_dir = tmp_path / "kb"
     kb_dir.mkdir()
-    (kb_dir / "guideline.txt").write_text("Synthetic security guideline.", encoding="utf-8")
+    (kb_dir / "guideline.txt").write_text(
+        "Synthetic security guideline.", encoding="utf-8"
+    )
 
     mock_vs = MagicMock()
     mock_chroma.return_value = mock_vs
 
     mock_loader = MagicMock()
-    mock_loader.load.return_value = [Document(page_content="Synthetic security guideline.")]
+    mock_loader.load.return_value = [
+        Document(page_content="Synthetic security guideline.")
+    ]
     mock_loader_cls.return_value = mock_loader
 
     engine = RAGEngine(persist_dir=str(persist_dir), core_kb_dir=str(kb_dir))
@@ -59,7 +63,9 @@ def test_add_documents_from_texts_and_retrieve_context(mock_emb, mock_chroma, tm
     )
 
     assert engine.add_documents_from_texts([]) == 0
-    assert engine.add_documents_from_texts([{"content": "", "source_name": "a.txt"}]) == 0
+    assert (
+        engine.add_documents_from_texts([{"content": "", "source_name": "a.txt"}]) == 0
+    )
 
     count = engine.add_documents_from_texts(
         [{"content": "Policy rules for gateway.", "source_name": "policy.txt"}]

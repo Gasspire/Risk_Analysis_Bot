@@ -1,6 +1,10 @@
 from unittest.mock import MagicMock, patch
 from models import SessionStateData, BotStateEnum, IntentOutput, IntentType
-from llm_handler.executor import is_cancel_command, cancel_active_flow, RiskAgentExecutor
+from llm_handler.executor import (
+    is_cancel_command,
+    cancel_active_flow,
+    RiskAgentExecutor,
+)
 
 
 def test_is_cancel_command():
@@ -41,14 +45,37 @@ def test_cancel_active_flow(sample_threat_factory):
     assert msg_idle == "Operation cancelled."
 
 
-@patch("llm_handler.executor.handle_asset_extract", return_value=("assets ok", SessionStateData()))
-@patch("llm_handler.executor.handle_discuss_modify", return_value=("discuss ok", SessionStateData()))
-@patch("llm_handler.executor.handle_reevaluate_filtered", return_value=("reeval ok", SessionStateData()))
-@patch("llm_handler.executor.handle_batch_assessment", return_value=("batch ok", SessionStateData()))
-@patch("llm_handler.executor.handle_rag_info", return_value=("rag ok", SessionStateData()))
-@patch("llm_handler.executor.handle_single_threat_analysis", return_value=("single ok", SessionStateData()))
+@patch(
+    "llm_handler.executor.handle_asset_extract",
+    return_value=("assets ok", SessionStateData()),
+)
+@patch(
+    "llm_handler.executor.handle_discuss_modify",
+    return_value=("discuss ok", SessionStateData()),
+)
+@patch(
+    "llm_handler.executor.handle_reevaluate_filtered",
+    return_value=("reeval ok", SessionStateData()),
+)
+@patch(
+    "llm_handler.executor.handle_batch_assessment",
+    return_value=("batch ok", SessionStateData()),
+)
+@patch(
+    "llm_handler.executor.handle_rag_info", return_value=("rag ok", SessionStateData())
+)
+@patch(
+    "llm_handler.executor.handle_single_threat_analysis",
+    return_value=("single ok", SessionStateData()),
+)
 def test_executor_routing_and_overrides(
-    mock_single, mock_rag, mock_batch, mock_reeval, mock_discuss, mock_asset, mock_rag_engine
+    mock_single,
+    mock_rag,
+    mock_batch,
+    mock_reeval,
+    mock_discuss,
+    mock_asset,
+    mock_rag_engine,
 ):
     factory = MagicMock()
     intent_chain = MagicMock()
@@ -56,7 +83,9 @@ def test_executor_routing_and_overrides(
     analyzer = MagicMock()
     extractor = MagicMock()
 
-    executor = RiskAgentExecutor(factory, mock_rag_engine, analyzer, asset_extractor=extractor)
+    executor = RiskAgentExecutor(
+        factory, mock_rag_engine, analyzer, asset_extractor=extractor
+    )
 
     state_pending = SessionStateData(pending_threat={"threat": "Threat Alpha"})
     out, st = executor.process_message("annulla", state_pending)
@@ -72,7 +101,9 @@ def test_executor_routing_and_overrides(
         (IntentType.ASSET_EXTRACT, "assets ok", mock_asset),
     ]
     for intent_type, expected_text, mock_fn in cases:
-        intent_chain.invoke.return_value = IntentOutput(intent=intent_type, extracted_entities={})
+        intent_chain.invoke.return_value = IntentOutput(
+            intent=intent_type, extracted_entities={}
+        )
         out, st = executor.process_message("test input", SessionStateData())
         assert out == expected_text
         assert mock_fn.called

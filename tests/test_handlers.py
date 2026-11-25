@@ -182,7 +182,9 @@ def test_handle_asset_extract_branches():
         selected_clusters=[],
         final_assets=["Auth Gateway", "Billing DB"],
         described_assets=[
-            ExtractedAssetRecord(name="Auth Gateway", description="Handles auth tokens"),
+            ExtractedAssetRecord(
+                name="Auth Gateway", description="Handles auth tokens"
+            ),
             ExtractedAssetRecord(name="Billing DB", description="Stores invoices"),
         ],
     )
@@ -229,7 +231,11 @@ def test_handle_discuss_modify_flows(mock_prompt_cls, sample_threat_factory):
         "response_text": "",
     }
     resp, updated = handle_discuss_modify(
-        "Discuss API Injection", state, factory, {"threat_name": "API Injection"}, analyzer
+        "Discuss API Injection",
+        state,
+        factory,
+        {"threat_name": "API Injection"},
+        analyzer,
     )
     assert updated.bot_state == BotStateEnum.DISCUSSING_THREAT
     assert updated.active_threat_id == "t1"

@@ -110,14 +110,18 @@ def test_evaluate_likelihood_and_impact_success_and_fallback(mock_rag_engine):
 def test_synthesize_reasoning_success_and_fallback(mock_rag_engine):
     analyzer, _, _, _, s_chain = _make_analyzer(mock_rag_engine)
 
-    s_chain.invoke.return_value = SynthesisOutput(synthesized_reasoning="Unified reason.")
+    s_chain.invoke.return_value = SynthesisOutput(
+        synthesized_reasoning="Unified reason."
+    )
     assert (
         analyzer.synthesize_reasoning("Threat X", "Likelihood", 3, ["r1", "r2"])
         == "Unified reason."
     )
 
     s_chain.invoke.side_effect = RuntimeError("Fail")
-    assert analyzer.synthesize_reasoning("Threat X", "Likelihood", 3, ["r1", "r2"]) == "r1"
+    assert (
+        analyzer.synthesize_reasoning("Threat X", "Likelihood", 3, ["r1", "r2"]) == "r1"
+    )
     assert (
         analyzer.synthesize_reasoning("Threat X", "Likelihood", 3, [])
         == "Errore di calcolo nella sintesi."
@@ -189,7 +193,9 @@ def test_evaluate_single_and_list_of_threats_single_and_multi_iterations(
     assert out_multi[0].likelihood_reasoning == "Synthesized."
     assert out_multi[0].impact_reasoning == "Synthesized."
 
-    with patch("core.risk_analyzer.stat.mode", side_effect=stat.StatisticsError("no mode")):
+    with patch(
+        "core.risk_analyzer.stat.mode", side_effect=stat.StatisticsError("no mode")
+    ):
         rec3 = sample_threat_factory(
             threat_id="t3",
             threat="Threat C",

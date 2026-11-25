@@ -15,7 +15,9 @@ def _make_extractor(tmp_path, mock_emb_cls):
     mock_emb = MagicMock()
     mock_emb_cls.return_value = mock_emb
     mock_factory = MagicMock()
-    extractor = AssetExtractor(chain_factory=mock_factory, docs_dir=str(tmp_path / "docs"))
+    extractor = AssetExtractor(
+        chain_factory=mock_factory, docs_dir=str(tmp_path / "docs")
+    )
     return extractor, mock_emb, mock_factory
 
 
@@ -82,9 +84,7 @@ def test_compute_embeddings_and_clustering(tmp_path):
     np.testing.assert_allclose(np.linalg.norm(embs, axis=1), np.ones(3), atol=1e-5)
 
     assert extractor.cluster_kmeans_optimal([], np.empty((0, 0))) == ([], 0.0)
-    small_clusters, sil = extractor.cluster_kmeans_optimal(
-        ["server", "db"], embs[:2]
-    )
+    small_clusters, sil = extractor.cluster_kmeans_optimal(["server", "db"], embs[:2])
     assert len(small_clusters) == 1
     assert sil == 1.0
 
@@ -132,7 +132,9 @@ def test_cohesion_filtering_and_merging(tmp_path):
         centroid=np.array([0.707, 0.707], dtype=np.float32),
     )
 
-    filtered = extractor.filter_clusters_by_cohesion([c1, c_single, c_low], min_cohesion=0.6)
+    filtered = extractor.filter_clusters_by_cohesion(
+        [c1, c_single, c_low], min_cohesion=0.6
+    )
     assert len(filtered) == 1
     assert "cdn" in filtered[0].terms
 
@@ -143,7 +145,9 @@ def test_cohesion_filtering_and_merging(tmp_path):
         embeddings=np.array([[0.99, 0.02]], dtype=np.float32),
         centroid=np.array([0.99, 0.02], dtype=np.float32),
     )
-    merged = extractor.merge_similar_clusters([filtered[0], c_dup], max_centroid_similarity=0.8)
+    merged = extractor.merge_similar_clusters(
+        [filtered[0], c_dup], max_centroid_similarity=0.8
+    )
     assert len(merged) == 1
     assert "edge router" in merged[0].terms
 
@@ -189,10 +193,15 @@ def test_select_dedup_snippets_descriptions_and_pipeline(tmp_path):
         [1.0, 0.0],
         [0.0, 1.0],
     ]
-    deduped = extractor.deduplicate_assets(["Auth Gateway", "Auth gateways", "Firewall"])
+    deduped = extractor.deduplicate_assets(
+        ["Auth Gateway", "Auth gateways", "Firewall"]
+    )
     assert deduped == ["Auth Gateway", "Firewall"]
 
-    assert extractor._extract_relevant_snippets("", ["Firewall"]) == "No document text provided."
+    assert (
+        extractor._extract_relevant_snippets("", ["Firewall"])
+        == "No document text provided."
+    )
     snippets = extractor._extract_relevant_snippets(
         "Unrelated line.\nThe Firewall protects the Auth Gateway.", ["Firewall"]
     )
@@ -203,12 +212,16 @@ def test_select_dedup_snippets_descriptions_and_pipeline(tmp_path):
     assert extractor.generate_asset_descriptions([], "text") == []
     desc_chain = MagicMock()
     desc_chain.invoke.return_value = AssetDescriptionsOutput(
-        assets=[ExtractedAssetRecord(name="Auth Gateway", description="Handles user login.")]
+        assets=[
+            ExtractedAssetRecord(name="Auth Gateway", description="Handles user login.")
+        ]
     )
     mock_factory.get_asset_description_chain.return_value = desc_chain
 
     described = extractor.generate_asset_descriptions(
-        ["Auth Gateway", "Firewall"], "The Auth Gateway and Firewall.", "Synthetic Platform"
+        ["Auth Gateway", "Firewall"],
+        "The Auth Gateway and Firewall.",
+        "Synthetic Platform",
     )
     assert described[0].description == "Handles user login."
     assert "system architecture documentation" in described[1].description

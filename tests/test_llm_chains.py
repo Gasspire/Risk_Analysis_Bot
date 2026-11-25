@@ -4,7 +4,9 @@ from core.llm_chains import LLMChainFactory
 
 @patch("core.llm_chains.ChatOllama")
 def test_get_llm_options(mock_chat_ollama):
-    factory = LLMChainFactory(model_name="llama3.1", temperature=0.2, base_url="http://localhost:11434")
+    factory = LLMChainFactory(
+        model_name="llama3.1", temperature=0.2, base_url="http://localhost:11434"
+    )
 
     factory.get_llm()
     mock_chat_ollama.assert_called_with(
