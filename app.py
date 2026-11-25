@@ -79,6 +79,7 @@ def refresh_conversational_context(target_state: SessionStateData):
     """Refresha il contesto conversazionale: azzera stato bot e minacce pendenti (Opzione A)."""
     target_state.pending_threat = None
     target_state.active_threat_id = None
+    target_state.active_threat_backup = None
     target_state.bot_state = BotStateEnum.IDLE
 
 

@@ -55,6 +55,7 @@ class SessionStateData(BaseModel):
     bot_state: BotStateEnum = BotStateEnum.IDLE
     pending_threat: Optional[Dict[str, Optional[str]]] = None
     active_threat_id: Optional[str] = None
+    active_threat_backup: Optional[ThreatRecord] = None
     assessment_results: List[ThreatRecord] = Field(default_factory=list)
     extracted_assets: List[ExtractedAssetRecord] = Field(default_factory=list)
     chat_history: List[Dict[str, str]] = Field(default_factory=list)
