@@ -14,6 +14,64 @@ from llm_handler.handlers import (
 )
 
 
+CANCEL_PHRASES = {
+    "annulla",
+    "annulla tutto",
+    "annulla modifiche",
+    "annulla analisi",
+    "esci",
+    "esci dalla discussione",
+    "stop",
+    "basta",
+    "cancel",
+    "cancel all",
+    "exit",
+    "abort",
+    "quit",
+    "nevermind",
+    "never mind",
+}
+
+
+def is_cancel_command(user_input: str) -> bool:
+    """Restituisce True se il messaggio corrisponde a un comando di annullamento/uscita."""
+    normalized = user_input.strip().lstrip("/").rstrip(".,;:!?").strip().lower()
+    return normalized in CANCEL_PHRASES
+
+
+def cancel_active_flow(state: SessionStateData) -> Tuple[str, SessionStateData]:
+    """Annulla il flusso pendente o la discussione attiva, ripristinando eventuali modifiche."""
+    messages = []
+
+    if state.pending_threat is not None:
+        state.pending_threat = None
+        messages.append(
+            "Pending threat analysis cancelled and temporary data discarded."
+        )
+
+    if state.active_threat_id is not None:
+        restored_name = None
+        if state.active_threat_backup is not None:
+            for idx, rec in enumerate(state.assessment_results):
+                if rec.id == state.active_threat_id:
+                    state.assessment_results[idx] = (
+                        state.active_threat_backup.model_copy(deep=True)
+                    )
+                    restored_name = state.active_threat_backup.threat
+                    break
+        state.active_threat_id = None
+        state.active_threat_backup = None
+        if restored_name:
+            messages.append(
+                f"Discussion cancelled. Any modifications to **{restored_name}** have been discarded."
+            )
+        else:
+            messages.append("Discussion cancelled.")
+
+    state.bot_state = BotStateEnum.IDLE
+    return " ".join(messages) if messages else "Operation cancelled.", state
+
+
 class RiskAgentExecutor:
     """
     Orchestratore puro per la gestione del dialogo e delle operazioni del Bot.
@@ -50,6 +108,14 @@ class RiskAgentExecutor:
         has_active_discussion = (
             state.active_threat_id is not None
         )  # Controllo se ci sono discussioni attive
+
+        if (has_pending or has_active_discussion) and is_cancel_command(user_input):
+            output_text, updated_state = cancel_active_flow(state)
+            updated_state.chat_history.append({"role": "user", "content": user_input})
+            updated_state.chat_history.append(
+                {"role": "assistant", "content": output_text}
+            )
+            return output_text, updated_state
 
         try:
             intent_res: IntentOutput = cast(

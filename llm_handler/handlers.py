@@ -129,7 +129,8 @@ def handle_single_threat_analysis(
         missing_str = ", ".join(missing_fields)
         return (
             f"To proceed with the threat analysis, additional details are required.\n"
-            f"Please specify the following missing parameter(s): **{missing_str}**.",
+            f"Please specify the following missing parameter(s): **{missing_str}**.\n"
+            f"*(Type `cancel` to abort and exit.)*",
             state,
         )
 
@@ -451,6 +452,7 @@ def handle_discuss_modify(
 ) -> Tuple[str, SessionStateData]:
 
     active_id = state.active_threat_id  # ID del threat attivo
+    entered_new_discussion = False
     target_record: Optional[ThreatRecord] = None
 
     if active_id:  # Se non c'è, significa che siamo appena entrati nella funzione
@@ -534,7 +536,9 @@ def handle_discuss_modify(
             )
         # Arrivato a questo punto, abbiamo una minaccia
         state.active_threat_id = target_record.id
+        state.active_threat_backup = target_record.model_copy(deep=True)
         state.bot_state = BotStateEnum.DISCUSSING_THREAT
+        entered_new_discussion = True
 
     icon, label = get_risk_indicator(target_record.risk_factor)
 
@@ -646,6 +650,7 @@ def handle_discuss_modify(
     # Chiusura
     if is_finished:
         state.active_threat_id = None
+        state.active_threat_backup = None
         state.bot_state = BotStateEnum.IDLE
         if not response_text:
             response_text = f"The modifications for **{target_record.threat}** have been saved. Discussion closed."
@@ -664,6 +669,12 @@ def handle_discuss_modify(
             f"  - *Reasoning:* {target_record.impact_reasoning}\n\n"
             f"**Risk Factor:** {new_icon} {target_record.risk_factor}/25 ({new_label})\n\n"
             f"Would you like to make any modifications or ask further questions about this analysis?"
+        )
+
+    if entered_new_discussion and not is_finished:
+        response_text = (
+            f"{response_text.rstrip()}\n\n"
+            f"*(Type `annulla` or `cancel` to discard changes and exit.)*"
         )
 
     return response_text, state
