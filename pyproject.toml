@@ -1,0 +1,22 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.coverage.run]
+source = ["core", "llm_handler", "storage", "models", "config"]
+omit = ["app.py", "tests/*"]
+
+[tool.coverage.report]
+show_missing = true
+
+[tool.black]
+extend-exclude = '''
+/(
+    Lib
+  | Scripts
+  | Include
+  | etc
+  | share
+  | chroma_db
+)/
+'''
