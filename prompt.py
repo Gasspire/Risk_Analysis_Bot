@@ -530,14 +530,18 @@ EXTRACTION & DISCUSSION RULES:
    - Return the COMPLETE updated comma-separated string in "updated_security_measures" when modifying general/all security measures (leave "updated_preventive_measures" and "updated_mitigative_measures" as null so they can be re-classified automatically).
    - Return the COMPLETE updated comma-separated string in "updated_preventive_measures" and/or "updated_mitigative_measures" ONLY when the user specifically asks to modify preventive or mitigative measures (leave "updated_security_measures" as null).
    - When modifying any of these fields, leave "updated_likelihood", "updated_impact", "updated_likelihood_reasoning", "updated_impact_reasoning", "additional_rule_l", "additional_rule_i", and "general_observation" as null (unless the user also explicitly specifies an exact score override), because the threat will be re-evaluated automatically.
+   - Set "keep_likelihood_unchanged" to true if the user explicitly asks to keep the current likelihood score unchanged (e.g., "let the scores unchanged", "keep scores as they are", "non modificare i punteggi"); otherwise false.
+   - Set "keep_impact_unchanged" to true if the user explicitly asks to keep the current impact score unchanged (e.g., "let the scores unchanged", "keep scores as they are", "non modificare i punteggi"); otherwise false.
 6. Set "show_current_state" to true if the user asks to see, check, or display the current/actual state, scores, or details of the threat; otherwise set it to false.
-7. Generate a clear, professional, objective, and factual response ("response_text"). Do NOT repeat or list all threat assessment fields/scores verbatim in "response_text" (the interface already displays the structured card). If "is_finished" is false, answer any technical/cybersecurity questions, briefly summarize any applied changes, and ask if the analyst wants further adjustments. If "is_finished" is true, provide ONLY a concise factual explanation/summary of the final assessment without asking follow-up questions.
+7. Generate a clear, professional, objective, and factual response ("response_text"). NEVER restate, summarize, or list the threat's fields/scores in "response_text" (the interface already displays the structured card above your message; if the user is just opening a discussion, reply only with a short question asking what they want to review or modify). If "is_finished" is false, answer any technical/cybersecurity questions, briefly note any applied changes, and ask if the analyst wants further adjustments. If "is_finished" is true, provide ONLY a concise factual explanation/summary of the final assessment without asking follow-up questions.
 
 You MUST respond strictly with a valid JSON object matching this structure:
 
 {{
     "is_finished": boolean,
     "show_current_state": boolean,
+    "keep_likelihood_unchanged": boolean,
+    "keep_impact_unchanged": boolean,
     "updated_affected_assets": string or null,
     "updated_security_measures": string or null,
     "updated_preventive_measures": string or null,

@@ -549,3 +549,54 @@ def test_handle_discuss_modify_assets_and_measures_reassessment(
         analyzer.evaluate_single_threat.call_args.kwargs.get("eval_likelihood") is False
     )
     assert analyzer.evaluate_single_threat.call_args.kwargs.get("eval_impact") is True
+
+    # 5) Modifica security_measures con punteggi bloccati -> riclassifica misure senza ricalcolare i punteggi
+    analyzer.classify_security_measures.return_value = (
+        "Anti-Virus",
+        "Anti-Virus, Backup",
+    )
+    mock_chain.invoke.return_value = {
+        "updated_security_measures": "Anti-Virus, Backup",
+        "updated_likelihood": 3,
+        "updated_impact": 4,
+        "is_finished": False,
+        "response_text": "Removed Network isolation while keeping scores.",
+    }
+    _, state = handle_discuss_modify(
+        "Remove Network isolation, keep likelihood 3 and impact 4",
+        state,
+        factory,
+        {},
+        analyzer,
+    )
+    analyzer.classify_security_measures.assert_called_once_with(
+        "Ransomware", "File Server, Database", "Anti-Virus, Backup"
+    )
+    assert analyzer.evaluate_single_threat.call_count == 4
+    assert state.assessment_results[0].preventive_measures == "Anti-Virus"
+    assert state.assessment_results[0].mitigative_measures == "Anti-Virus, Backup"
+
+    # 6) Modifica security_measures con keep_likelihood_unchanged / keep_impact_unchanged (senza numeri espliciti)
+    analyzer.classify_security_measures.reset_mock()
+    analyzer.classify_security_measures.return_value = ("Anti-Virus", "Backup")
+    mock_chain.invoke.return_value = {
+        "updated_security_measures": "Anti-Virus, Backup",
+        "keep_likelihood_unchanged": True,
+        "keep_impact_unchanged": True,
+        "is_finished": False,
+        "response_text": "Scores kept unchanged.",
+    }
+    state.assessment_results[0].security_measures = "Anti-Virus, Firewall, Backup"
+    _, state = handle_discuss_modify(
+        "Eliminate Firewall, let the scores unchanged",
+        state,
+        factory,
+        {},
+        analyzer,
+    )
+    analyzer.classify_security_measures.assert_called_once_with(
+        "Ransomware", "File Server, Database", "Anti-Virus, Backup"
+    )
+    assert analyzer.evaluate_single_threat.call_count == 4
+    assert state.assessment_results[0].preventive_measures == "Anti-Virus"
+    assert state.assessment_results[0].mitigative_measures == "Backup"

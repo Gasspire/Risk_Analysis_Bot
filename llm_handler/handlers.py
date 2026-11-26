@@ -833,6 +833,8 @@ def handle_discuss_modify(
     updated_i_reason = parsed_res.get("updated_impact_reasoning")
     is_finished = parsed_res.get("is_finished", False)
     show_current_state = bool(parsed_res.get("show_current_state", False))
+    keep_l = bool(parsed_res.get("keep_likelihood_unchanged", False))
+    keep_i = bool(parsed_res.get("keep_impact_unchanged", False))
     response_text = parsed_res.get("response_text", "")
 
     def _clean_rule(val: Any) -> Optional[str]:
@@ -888,47 +890,59 @@ def handle_discuss_modify(
         or bool(add_rule_l or add_rule_i or gen_obs)
     )
 
-    if (  # gestisco i vari casi di rianalisi
-        risk_analyzer is not None
-        and needs_reeval
-        and updated_l is None
-        and updated_i is None
-    ):
-        temp_general_context = (
-            f"{state.general_context}\n{gen_obs}".strip()
-            if gen_obs
-            else state.general_context
-        )
-        temp_rules_l = (
-            f"{state.custom_rules_likelihood}\n{add_rule_l}".strip()
-            if add_rule_l
-            else state.custom_rules_likelihood
-        )
-        temp_rules_i = (
-            f"{state.custom_rules_impact}\n{add_rule_i}".strip()
-            if add_rule_i
-            else state.custom_rules_impact
-        )
+    if risk_analyzer is not None and needs_reeval:
         reclassify = all_measures_changed and not specific_measures_changed
         if assets_changed or all_measures_changed or gen_obs:
-            eval_l = True
-            eval_i = True
+            eval_l = (updated_l is None) and (not keep_l)
+            eval_i = (updated_i is None) and (not keep_i)
         else:
-            eval_l = prev_changed or bool(add_rule_l)
-            eval_i = mit_changed or bool(add_rule_i)
+            eval_l = (
+                (prev_changed or bool(add_rule_l))
+                and (updated_l is None)
+                and (not keep_l)
+            )
+            eval_i = (
+                (mit_changed or bool(add_rule_i))
+                and (updated_i is None)
+                and (not keep_i)
+            )
 
-        risk_analyzer.evaluate_single_threat(
-            record=target_record,
-            general_context=temp_general_context,
-            rules_l=temp_rules_l,
-            rules_i=temp_rules_i,
-            num_iterations=state.num_iterations,
-            reclassify_measures=reclassify,
-            eval_likelihood=eval_l,
-            eval_impact=eval_i,
-        )
-        if not is_finished:
-            response_text = ""
+        if eval_l or eval_i:
+            temp_general_context = (
+                f"{state.general_context}\n{gen_obs}".strip()
+                if gen_obs
+                else state.general_context
+            )
+            temp_rules_l = (
+                f"{state.custom_rules_likelihood}\n{add_rule_l}".strip()
+                if add_rule_l
+                else state.custom_rules_likelihood
+            )
+            temp_rules_i = (
+                f"{state.custom_rules_impact}\n{add_rule_i}".strip()
+                if add_rule_i
+                else state.custom_rules_impact
+            )
+            risk_analyzer.evaluate_single_threat(
+                record=target_record,
+                general_context=temp_general_context,
+                rules_l=temp_rules_l,
+                rules_i=temp_rules_i,
+                num_iterations=state.num_iterations,
+                reclassify_measures=reclassify,
+                eval_likelihood=eval_l,
+                eval_impact=eval_i,
+            )
+            if not is_finished:
+                response_text = ""
+        elif reclassify:
+            prev_str, mit_str = risk_analyzer.classify_security_measures(
+                target_record.threat,
+                target_record.affected_assets,
+                target_record.security_measures,
+            )
+            target_record.preventive_measures = prev_str
+            target_record.mitigative_measures = mit_str
     # Salvataggio nuove info
     if updated_l is None and entities.get("target_parameter") == "likelihood":
         val = entities.get("suggested_score")
@@ -982,12 +996,11 @@ def handle_discuss_modify(
         state_block = _format_threat_state(
             target_record, title_prefix="Current Assessment for"
         )
-        follow_up = (
-            response_text.strip()
-            if response_text and response_text.strip()
-            else "Would you like to make any modifications or ask further questions about this analysis?"
+        response_text = (
+            f"{state_block}\n\n"
+            f"Would you like to make any modifications or ask further questions about this analysis?\n\n"
+            f"*(Type `confirm`/`conferma` to save and exit, or `annulla`/`cancel` to discard changes.)*"
         )
-        response_text = f"{state_block}\n\n{follow_up}"
     elif not response_text:
         state_block = _format_threat_state(target_record)
         response_text = (
