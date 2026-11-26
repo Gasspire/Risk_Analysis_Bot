@@ -255,3 +255,48 @@ def test_handle_discuss_modify_flows(mock_prompt_cls, sample_threat_factory):
     assert updated2.bot_state == BotStateEnum.IDLE
     assert updated2.active_threat_id is None
     assert "Discussion closed" in resp2
+
+
+@patch("llm_handler.handlers.ChatPromptTemplate")
+def test_handle_discuss_modify_disambiguation(mock_prompt_cls, sample_threat_factory):
+    factory = MagicMock()
+    factory.get_llm.return_value = MagicMock()
+
+    mock_chain = MagicMock()
+    mock_prompt = MagicMock()
+    mock_prompt.__or__.return_value.__or__.return_value = mock_chain
+    mock_prompt_cls.from_messages.return_value = mock_prompt
+    mock_chain.invoke.return_value = {
+        "is_finished": False,
+        "response_text": "",
+    }
+
+    rec1 = sample_threat_factory(
+        threat_id="t1",
+        threat="SQL Injection",
+        affected_assets="Database",
+    )
+    rec2 = sample_threat_factory(
+        threat_id="t2",
+        threat="API Injection",
+        affected_assets="Core API",
+    )
+    state = SessionStateData(assessment_results=[rec1, rec2])
+
+    resp, state = handle_discuss_modify(
+        "Discuss Injection", state, factory, {"threat_name": "Injection"}
+    )
+    assert state.bot_state == BotStateEnum.AWAITING_THREAT_SELECTION
+    assert state.pending_discussion_candidates == ["t1", "t2"]
+    assert "1. **SQL Injection**" in resp
+    assert "2. **API Injection**" in resp
+
+    invalid_resp, state = handle_discuss_modify("99", state, factory, {})
+    assert state.bot_state == BotStateEnum.AWAITING_THREAT_SELECTION
+    assert "Invalid selection" in invalid_resp
+
+    sel_resp, state = handle_discuss_modify("2", state, factory, {})
+    assert state.bot_state == BotStateEnum.DISCUSSING_THREAT
+    assert state.active_threat_id == "t2"
+    assert state.pending_discussion_candidates is None
+    assert "API Injection" in sel_resp
