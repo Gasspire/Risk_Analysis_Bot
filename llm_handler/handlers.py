@@ -443,6 +443,254 @@ def handle_asset_extract(
     return report, state
 
 
+_THREAT_STOP_WORDS = {"threat", "attack", "risk", "minaccia", "attacco"}
+
+_CLOSE_PHRASES = {
+    "chiudi",
+    "chiudi discussione",
+    "conferma",
+    "confermo",
+    "confirm",
+    "salva",
+    "salva e chiudi",
+    "fine",
+    "fatto",
+    "basta così",
+    "basta cosi",
+    "va bene così",
+    "va bene cosi",
+    "perfetto così",
+    "perfetto cosi",
+    "close",
+    "close discussion",
+    "save",
+    "save and close",
+    "done",
+    "finish",
+    "finished",
+    "that's all",
+    "thats all",
+    "no further changes",
+}
+
+
+def _is_direct_close_command(user_input: str) -> bool:
+    normalized = user_input.strip().lstrip("/").rstrip(".,;:!?").strip().lower()
+    return normalized in _CLOSE_PHRASES
+
+
+def _dedupe_records(records: List[ThreatRecord]) -> List[ThreatRecord]:
+    seen = set()
+    unique: List[ThreatRecord] = []
+    for rec in records:
+        if rec.id not in seen:
+            seen.add(rec.id)
+            unique.append(rec)
+    return unique
+
+
+def _find_matching_threats(
+    user_input: str,
+    entities: Dict[str, Any],
+    assessment_results: List[ThreatRecord],
+) -> List[ThreatRecord]:
+    """Trova tutti i ThreatRecord che corrispondono alla ricerca dell'utente."""
+    search_term = (
+        entities.get("threat_name")
+        or entities.get("threat")
+        or entities.get("target_threat")
+        or entities.get("target_record")
+        or ""
+    )
+    clean_term = (
+        search_term.strip(" '\".,;:!?").lower() if isinstance(search_term, str) else ""
+    )
+
+    if clean_term:
+        exact_matches = [
+            r for r in assessment_results if r.threat.lower() == clean_term
+        ]
+        if exact_matches:
+            return _dedupe_records(exact_matches)
+
+        substr_matches = [
+            r
+            for r in assessment_results
+            if clean_term in r.threat.lower() or r.threat.lower() in clean_term
+        ]
+        if substr_matches:
+            return _dedupe_records(substr_matches)
+
+        sig_words = [
+            w for w in clean_term.split() if len(w) > 3 and w not in _THREAT_STOP_WORDS
+        ]
+        if sig_words:
+            word_matches = [
+                r
+                for r in assessment_results
+                if any(w in r.threat.lower() for w in sig_words)
+            ]
+            if word_matches:
+                return _dedupe_records(word_matches)
+
+    user_input_lower = user_input.lower()
+    input_substr_matches = [
+        r for r in assessment_results if r.threat.lower() in user_input_lower
+    ]
+    if input_substr_matches:
+        return _dedupe_records(input_substr_matches)
+
+    input_word_matches = []
+    for r in assessment_results:
+        sig_words = [
+            w
+            for w in r.threat.lower().split()
+            if len(w) > 3 and w not in _THREAT_STOP_WORDS
+        ]
+        if sig_words and any(w in user_input_lower for w in sig_words):
+            input_word_matches.append(r)
+
+    return _dedupe_records(input_word_matches)
+
+
+def _resolve_candidate_selection(
+    user_input: str, candidates: List[ThreatRecord]
+) -> Optional[ThreatRecord]:
+    """Risolve la scelta dell'utente tra più minacce candidate (per indice o nome)."""
+    cleaned = user_input.strip().lstrip("#").rstrip(".,;:!?").strip()
+    if cleaned.isdigit():
+        idx = int(cleaned) - 1
+        if 0 <= idx < len(candidates):
+            return candidates[idx]
+
+    lowered = cleaned.lower()
+    if not lowered:
+        return None
+
+    exact = [c for c in candidates if c.threat.lower() == lowered]
+    if len(exact) == 1:
+        return exact[0]
+
+    substr = [
+        c
+        for c in candidates
+        if lowered in c.threat.lower() or c.threat.lower() in lowered
+    ]
+    if len(substr) == 1:
+        return substr[0]
+
+    return None
+
+
+def _format_candidate_selection_prompt(
+    candidates: List[ThreatRecord], invalid_choice: bool = False
+) -> str:
+    header = (
+        "Invalid selection. Please reply with the number or name of one of the matching threats:\n\n"
+        if invalid_choice
+        else "Multiple threats match your request. Please select which one you want to discuss:\n\n"
+    )
+    lines = [
+        f"{idx}. **{rec.threat}** (Assets: {rec.affected_assets})"
+        for idx, rec in enumerate(candidates, start=1)
+    ]
+    return (
+        header
+        + "\n".join(lines)
+        + "\n\n*(Reply with the number or threat name, or type `annulla` / `cancel` to abort.)*"
+    )
+
+
+def _format_threat_state(
+    record: ThreatRecord, title_prefix: str = "Assessment for"
+) -> str:
+    """Formatta lo stato completo di una minaccia in Markdown."""
+    icon, label = get_risk_indicator(record.risk_factor)
+    return (
+        f"### {title_prefix}: **{record.threat}**\n\n"
+        f"- **Affected Assets:** {record.affected_assets}\n"
+        f"- **Security Measures:** {record.security_measures}\n"
+        f"- 🛡️ **Preventive Measures:** {record.preventive_measures}\n"
+        f"- 🩹 **Mitigative Measures:** {record.mitigative_measures}\n"
+        f"- 📈 **Likelihood Score:** {record.likelihood}/5\n"
+        f"  - *Reasoning:* {record.likelihood_reasoning}\n"
+        f"- 💥 **Impact Score:** {record.impact}/5\n"
+        f"  - *Reasoning:* {record.impact_reasoning}\n\n"
+        f"**Risk Factor:** {icon} {record.risk_factor}/25 ({label})"
+    )
+
+
+def _format_final_discussion_summary(
+    record: ThreatRecord,
+    backup: Optional[ThreatRecord],
+    explanation: str = "",
+) -> str:
+    """Formatta il messaggio finale con il nuovo stato della minaccia e il riepilogo delle modifiche."""
+    state_block = _format_threat_state(record, title_prefix="Updated Assessment for")
+
+    changes: List[str] = []
+    if backup is not None:
+        field_diffs = [
+            ("Affected Assets", backup.affected_assets, record.affected_assets),
+            ("Security Measures", backup.security_measures, record.security_measures),
+            (
+                "Preventive Measures",
+                backup.preventive_measures,
+                record.preventive_measures,
+            ),
+            (
+                "Mitigative Measures",
+                backup.mitigative_measures,
+                record.mitigative_measures,
+            ),
+            (
+                "Likelihood Score",
+                f"{backup.likelihood}/5",
+                f"{record.likelihood}/5",
+            ),
+            (
+                "Likelihood Reasoning",
+                backup.likelihood_reasoning,
+                record.likelihood_reasoning,
+            ),
+            (
+                "Impact Score",
+                f"{backup.impact}/5",
+                f"{record.impact}/5",
+            ),
+            (
+                "Impact Reasoning",
+                backup.impact_reasoning,
+                record.impact_reasoning,
+            ),
+            (
+                "Risk Factor",
+                f"{backup.risk_factor}/25",
+                f"{record.risk_factor}/25",
+            ),
+        ]
+        for label, old_val, new_val in field_diffs:
+            if old_val != new_val:
+                changes.append(f"- **{label}:** `{old_val}` → `{new_val}`")
+
+    changes_block = (
+        "\n".join(changes)
+        if changes
+        else "- No modifications were made to the threat assessment."
+    )
+
+    parts = [
+        state_block,
+        f"### Modifications Applied\n\n{changes_block}",
+    ]
+    if explanation and explanation.strip():
+        parts.append(f"**Explanation:** {explanation.strip()}")
+    parts.append(
+        f"The modifications for **{record.threat}** have been saved. Discussion closed."
+    )
+    return "\n\n".join(parts)
+
+
 def handle_discuss_modify(
     user_input: str,
     state: SessionStateData,
@@ -454,11 +702,44 @@ def handle_discuss_modify(
     active_id = state.active_threat_id  # ID del threat attivo
     entered_new_discussion = False
     target_record: Optional[ThreatRecord] = None
+    effective_user_input = user_input
 
     if active_id:  # Se non c'è, significa che siamo appena entrati nella funzione
         target_record = next(
             (r for r in state.assessment_results if r.id == active_id), None
         )
+
+    if not target_record and state.pending_discussion_candidates:
+        candidates = [
+            r
+            for r in state.assessment_results
+            if r.id in state.pending_discussion_candidates
+        ]
+        if not candidates:
+            state.pending_discussion_candidates = None
+            state.pending_discussion_input = None
+            state.bot_state = BotStateEnum.IDLE
+            return (
+                "The matching threats are no longer available in the assessment report.",
+                state,
+            )
+
+        selected = _resolve_candidate_selection(user_input, candidates)
+        if not selected:
+            return (
+                _format_candidate_selection_prompt(candidates, invalid_choice=True),
+                state,
+            )
+
+        target_record = selected
+        if state.pending_discussion_input:
+            effective_user_input = state.pending_discussion_input
+        state.pending_discussion_candidates = None
+        state.pending_discussion_input = None
+        state.active_threat_id = target_record.id
+        state.active_threat_backup = target_record.model_copy(deep=True)
+        state.bot_state = BotStateEnum.DISCUSSING_THREAT
+        entered_new_discussion = True
 
     if (
         not target_record
@@ -469,71 +750,25 @@ def handle_discuss_modify(
                 state,
             )
 
-        search_term = (  # Prendo quello che mi hanno passato nei campi (l'LLM potrebbe non per forza scrivere sempre il target correttamente, è una misura di sicurezza in più)
-            entities.get("threat_name")
-            or entities.get("threat")
-            or entities.get("target_threat")
-            or entities.get("target_record")
-            or ""
-        )
-        clean_term = (
-            search_term.strip(" '\".,;:!?").lower()
-            if isinstance(search_term, str)
-            else ""
+        matches = _find_matching_threats(
+            user_input=user_input,
+            entities=entities,
+            assessment_results=state.assessment_results,
         )
 
-        if clean_term:  # controllo se c'è il termine da cercare
-            target_record = next(
-                (
-                    r
-                    for r in state.assessment_results  # cerco il termine nella minaccia o viceversa
-                    if clean_term in r.threat.lower() or r.threat.lower() in clean_term
-                ),
-                None,
-            )
-
-            if not target_record:  # Prima non ho trovato nulla
-                sig_words = [
-                    w
-                    for w in clean_term.split()  # splitto l'input
-                    if len(w) > 3
-                    and w not in ["threat", "attack", "risk", "minaccia", "attacco"]
-                ]
-
-                if sig_words:  # cerco la singola parola
-                    target_record = next(
-                        (
-                            r
-                            for r in state.assessment_results
-                            if any(w in r.threat.lower() for w in sig_words)
-                        ),
-                        None,
-                    )
-
-        if not target_record:  # Ancora nulla
-            user_input_lower = user_input.lower()  # Controllo l'input utente
-            for r in state.assessment_results:
-                if r.threat.lower() in user_input_lower:
-                    target_record = r
-                    break
-
-            if not target_record:
-                for r in state.assessment_results:
-                    sig_words = [
-                        w
-                        for w in r.threat.lower().split()
-                        if len(w) > 3
-                        and w not in ["threat", "attack", "risk", "minaccia", "attacco"]
-                    ]
-                    if sig_words and any(w in user_input_lower for w in sig_words):
-                        target_record = r
-                        break
-
-        if not target_record:  # Il bot si arrende
+        if not matches:  # Il bot si arrende
             return (
-                f"The requested threat is not present in the assessment report.",
+                "The requested threat is not present in the assessment report.",
                 state,
             )
+
+        if len(matches) > 1:
+            state.pending_discussion_candidates = [r.id for r in matches]
+            state.pending_discussion_input = user_input
+            state.bot_state = BotStateEnum.AWAITING_THREAT_SELECTION
+            return _format_candidate_selection_prompt(matches), state
+
+        target_record = matches[0]
         # Arrivato a questo punto, abbiamo una minaccia
         state.active_threat_id = target_record.id
         state.active_threat_backup = target_record.model_copy(deep=True)
@@ -541,6 +776,19 @@ def handle_discuss_modify(
         entered_new_discussion = True
 
     icon, label = get_risk_indicator(target_record.risk_factor)
+
+    if not entered_new_discussion and _is_direct_close_command(effective_user_input):
+        backup_record = state.active_threat_backup
+        state.active_threat_id = None
+        state.active_threat_backup = None
+        state.bot_state = BotStateEnum.IDLE
+        return (
+            _format_final_discussion_summary(
+                record=target_record,
+                backup=backup_record,
+            ),
+            state,
+        )
 
     llm_json = chain_factory.get_llm(json_format=True)
 
@@ -569,7 +817,7 @@ def handle_discuss_modify(
                 "impact_reasoning": target_record.impact_reasoning,
                 "risk_factor": target_record.risk_factor,
                 "risk_label": label,
-                "input": user_input,
+                "input": effective_user_input,
             }
         )
 
@@ -584,6 +832,9 @@ def handle_discuss_modify(
     updated_l_reason = parsed_res.get("updated_likelihood_reasoning")
     updated_i_reason = parsed_res.get("updated_impact_reasoning")
     is_finished = parsed_res.get("is_finished", False)
+    show_current_state = bool(parsed_res.get("show_current_state", False))
+    keep_l = bool(parsed_res.get("keep_likelihood_unchanged", False))
+    keep_i = bool(parsed_res.get("keep_impact_unchanged", False))
     response_text = parsed_res.get("response_text", "")
 
     def _clean_rule(val: Any) -> Optional[str]:
@@ -595,35 +846,103 @@ def handle_discuss_modify(
     add_rule_i = _clean_rule(parsed_res.get("additional_rule_i"))
     gen_obs = _clean_rule(parsed_res.get("general_observation"))
 
-    if (  # gestisco i vari casi di rianalisi
-        risk_analyzer is not None
-        and (add_rule_l or add_rule_i or gen_obs)
-        and updated_l is None
-        and updated_i is None
+    new_assets = _clean_rule(parsed_res.get("updated_affected_assets"))
+    new_sec_measures = _clean_rule(parsed_res.get("updated_security_measures"))
+    new_prev_measures = _clean_rule(parsed_res.get("updated_preventive_measures"))
+    new_mit_measures = _clean_rule(parsed_res.get("updated_mitigative_measures"))
+
+    assets_changed = False
+    all_measures_changed = False
+    prev_changed = False
+    mit_changed = False
+
+    if new_assets is not None and new_assets != target_record.affected_assets:
+        target_record.affected_assets = new_assets
+        assets_changed = True
+
+    if (
+        new_sec_measures is not None
+        and new_sec_measures != target_record.security_measures
     ):
-        temp_general_context = (
-            f"{state.general_context}\n{gen_obs}".strip()
-            if gen_obs
-            else state.general_context
-        )
-        temp_rules_l = (
-            f"{state.custom_rules_likelihood}\n{add_rule_l}".strip()
-            if add_rule_l
-            else state.custom_rules_likelihood
-        )
-        temp_rules_i = (
-            f"{state.custom_rules_impact}\n{add_rule_i}".strip()
-            if add_rule_i
-            else state.custom_rules_impact
-        )
-        risk_analyzer.evaluate_single_threat(
-            record=target_record,
-            general_context=temp_general_context,
-            rules_l=temp_rules_l,
-            rules_i=temp_rules_i,
-            num_iterations=state.num_iterations,
-        )
-        response_text = ""
+        target_record.security_measures = new_sec_measures
+        all_measures_changed = True
+
+    if not all_measures_changed:
+        if (
+            new_prev_measures is not None
+            and new_prev_measures != target_record.preventive_measures
+        ):
+            target_record.preventive_measures = new_prev_measures
+            prev_changed = True
+
+        if (
+            new_mit_measures is not None
+            and new_mit_measures != target_record.mitigative_measures
+        ):
+            target_record.mitigative_measures = new_mit_measures
+            mit_changed = True
+
+    specific_measures_changed = prev_changed or mit_changed
+    needs_reeval = (
+        assets_changed
+        or all_measures_changed
+        or specific_measures_changed
+        or bool(add_rule_l or add_rule_i or gen_obs)
+    )
+
+    if risk_analyzer is not None and needs_reeval:
+        reclassify = all_measures_changed and not specific_measures_changed
+        if assets_changed or all_measures_changed or gen_obs:
+            eval_l = (updated_l is None) and (not keep_l)
+            eval_i = (updated_i is None) and (not keep_i)
+        else:
+            eval_l = (
+                (prev_changed or bool(add_rule_l))
+                and (updated_l is None)
+                and (not keep_l)
+            )
+            eval_i = (
+                (mit_changed or bool(add_rule_i))
+                and (updated_i is None)
+                and (not keep_i)
+            )
+
+        if eval_l or eval_i:
+            temp_general_context = (
+                f"{state.general_context}\n{gen_obs}".strip()
+                if gen_obs
+                else state.general_context
+            )
+            temp_rules_l = (
+                f"{state.custom_rules_likelihood}\n{add_rule_l}".strip()
+                if add_rule_l
+                else state.custom_rules_likelihood
+            )
+            temp_rules_i = (
+                f"{state.custom_rules_impact}\n{add_rule_i}".strip()
+                if add_rule_i
+                else state.custom_rules_impact
+            )
+            risk_analyzer.evaluate_single_threat(
+                record=target_record,
+                general_context=temp_general_context,
+                rules_l=temp_rules_l,
+                rules_i=temp_rules_i,
+                num_iterations=state.num_iterations,
+                reclassify_measures=reclassify,
+                eval_likelihood=eval_l,
+                eval_impact=eval_i,
+            )
+            if not is_finished:
+                response_text = ""
+        elif reclassify:
+            prev_str, mit_str = risk_analyzer.classify_security_measures(
+                target_record.threat,
+                target_record.affected_assets,
+                target_record.security_measures,
+            )
+            target_record.preventive_measures = prev_str
+            target_record.mitigative_measures = mit_str
     # Salvataggio nuove info
     if updated_l is None and entities.get("target_parameter") == "likelihood":
         val = entities.get("suggested_score")
@@ -649,32 +968,45 @@ def handle_discuss_modify(
         target_record.impact_reasoning = updated_i_reason.strip()
     # Chiusura
     if is_finished:
+        backup_record = state.active_threat_backup
         state.active_threat_id = None
         state.active_threat_backup = None
         state.bot_state = BotStateEnum.IDLE
-        if not response_text:
-            response_text = f"The modifications for **{target_record.threat}** have been saved. Discussion closed."
-
-    if not response_text:
-        new_icon, new_label = get_risk_indicator(target_record.risk_factor)
-        response_text = (
-            f"### Assessment for: **{target_record.threat}**\n\n"
-            f"- **Affected Assets:** {target_record.affected_assets}\n"
-            f"- **Security Measures:** {target_record.security_measures}\n"
-            f"- 🛡️ **Preventive Measures:** {target_record.preventive_measures}\n"
-            f"- 🩹 **Mitigative Measures:** {target_record.mitigative_measures}\n"
-            f"- 📈 **Likelihood Score:** {target_record.likelihood}/5\n"
-            f"  - *Reasoning:* {target_record.likelihood_reasoning}\n"
-            f"- 💥 **Impact Score:** {target_record.impact}/5\n"
-            f"  - *Reasoning:* {target_record.impact_reasoning}\n\n"
-            f"**Risk Factor:** {new_icon} {target_record.risk_factor}/25 ({new_label})\n\n"
-            f"Would you like to make any modifications or ask further questions about this analysis?"
+        response_text = _format_final_discussion_summary(
+            record=target_record,
+            backup=backup_record,
+            explanation=response_text,
         )
 
     if entered_new_discussion and not is_finished:
+        state_block = _format_threat_state(
+            target_record, title_prefix="Current Assessment for"
+        )
+        follow_up = (
+            response_text.strip()
+            if response_text and response_text.strip()
+            else "Would you like to make any modifications or ask further questions about this analysis?"
+        )
         response_text = (
-            f"{response_text.rstrip()}\n\n"
-            f"*(Type `annulla` or `cancel` to discard changes and exit.)*"
+            f"{state_block}\n\n"
+            f"{follow_up}\n\n"
+            f"*(Type `confirm`/`conferma` to save and exit, or `annulla`/`cancel` to discard changes.)*"
+        )
+    elif show_current_state and not is_finished:
+        state_block = _format_threat_state(
+            target_record, title_prefix="Current Assessment for"
+        )
+        response_text = (
+            f"{state_block}\n\n"
+            f"Would you like to make any modifications or ask further questions about this analysis?\n\n"
+            f"*(Type `confirm`/`conferma` to save and exit, or `annulla`/`cancel` to discard changes.)*"
+        )
+    elif not response_text:
+        state_block = _format_threat_state(target_record)
+        response_text = (
+            f"{state_block}\n\n"
+            f"Would you like to make any modifications or ask further questions about this analysis?\n\n"
+            f"*(Type `confirm`/`conferma` to save and exit, or `annulla`/`cancel` to discard changes.)*"
         )
 
     return response_text, state

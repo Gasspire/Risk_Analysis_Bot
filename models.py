@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field, field_validator
 class BotStateEnum(str, Enum):
     IDLE = "IDLE"
     AWAITING_THREAT_DETAILS = "AWAITING_THREAT_DETAILS"
+    AWAITING_THREAT_SELECTION = "AWAITING_THREAT_SELECTION"
     DISCUSSING_THREAT = "DISCUSSING_THREAT"
 
 
@@ -54,6 +55,8 @@ class ExtractedAssetRecord(BaseModel):
 class SessionStateData(BaseModel):
     bot_state: BotStateEnum = BotStateEnum.IDLE
     pending_threat: Optional[Dict[str, Optional[str]]] = None
+    pending_discussion_candidates: Optional[List[str]] = None
+    pending_discussion_input: Optional[str] = None
     active_threat_id: Optional[str] = None
     active_threat_backup: Optional[ThreatRecord] = None
     assessment_results: List[ThreatRecord] = Field(default_factory=list)
