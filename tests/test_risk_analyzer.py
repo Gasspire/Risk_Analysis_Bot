@@ -54,6 +54,29 @@ def test_classify_security_measures_success_and_fallback(mock_rag_engine):
     assert prev == "Control A"
     assert mit == "Control B"
 
+    # Hallucinated measure not in input `measures` must be filtered out
+    cls_chain.invoke.return_value = TypeOfMeasures(
+        measures=[
+            MeasureAnalysis(
+                measure_name="Control A",
+                is_preventive=True,
+                preventive_rationale="Blocks unauthorized access",
+                is_mitigative=False,
+                mitigative_rationale="N/A",
+            ),
+            MeasureAnalysis(
+                measure_name="Removed Control",
+                is_preventive=True,
+                preventive_rationale="Hallucinated from RAG",
+                is_mitigative=True,
+                mitigative_rationale="Hallucinated from RAG",
+            ),
+        ]
+    )
+    prev, mit = analyzer.classify_security_measures("Threat X", "Asset Y", "Control A")
+    assert prev == "Control A"
+    assert mit == "None"
+
     cls_chain.invoke.return_value = TypeOfMeasures(measures=[])
     prev, mit = analyzer.classify_security_measures("Threat X", "Asset Y", "None")
     assert prev == "None"

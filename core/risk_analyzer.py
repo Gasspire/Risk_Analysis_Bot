@@ -41,8 +41,14 @@ class RiskAnalyzer:
                     }
                 ),
             )
-            prev_list = [m.measure_name for m in res_class.measures if m.is_preventive]
-            mit_list = [m.measure_name for m in res_class.measures if m.is_mitigative]
+            measures_lower = measures.lower()
+            valid_measures = [
+                m
+                for m in res_class.measures
+                if m.measure_name and m.measure_name.strip().lower() in measures_lower
+            ]
+            prev_list = [m.measure_name for m in valid_measures if m.is_preventive]
+            mit_list = [m.measure_name for m in valid_measures if m.is_mitigative]
 
             preventive_str = ", ".join(prev_list) if prev_list else "None"
             mitigative_str = ", ".join(mit_list) if mit_list else "None"
@@ -145,79 +151,101 @@ class RiskAnalyzer:
         rules_l: str,
         rules_i: str,
         num_iterations: int = 1,
+        reclassify_measures: bool = True,
+        eval_likelihood: bool = True,
+        eval_impact: bool = True,
     ) -> ThreatRecord:
         """Valuta una singola minaccia aggiornando e restituendo un oggetto ThreatRecord."""
-        prev_str, mit_str = self.classify_security_measures(
-            record.threat, record.affected_assets, record.security_measures
+        if reclassify_measures:
+            prev_str, mit_str = self.classify_security_measures(
+                record.threat, record.affected_assets, record.security_measures
+            )
+        else:
+            prev_str = record.preventive_measures
+            mit_str = record.mitigative_measures
+
+        rag_context_l = (
+            self.rag_engine.retrieve_context(
+                f"Threat: {record.threat} | Assets: {record.affected_assets} | Preventive Measures: {prev_str}",
+                k=6,
+            )
+            if eval_likelihood
+            else ""
         )
-
-        query_l = f"Threat: {record.threat} | Assets: {record.affected_assets} | Preventive Measures: {prev_str}"
-        query_i = f"Threat: {record.threat} | Assets: {record.affected_assets} | Mitigative Measures: {mit_str}"
-
-        rag_context_l = self.rag_engine.retrieve_context(query_l, k=6)
-        rag_context_i = self.rag_engine.retrieve_context(query_i, k=6)
+        rag_context_i = (
+            self.rag_engine.retrieve_context(
+                f"Threat: {record.threat} | Assets: {record.affected_assets} | Mitigative Measures: {mit_str}",
+                k=6,
+            )
+            if eval_impact
+            else ""
+        )
 
         l_scores, l_reasons = [], []
         i_scores, i_reasons = [], []
 
         for _ in range(num_iterations):
-            res_l = self.evaluate_likelihood(
-                record.threat,
-                record.affected_assets,
-                prev_str,
-                rag_context_l,
-                rules_l,
-                general_context,
-            )
-            res_i = self.evaluate_impact(
-                record.threat,
-                record.affected_assets,
-                mit_str,
-                rag_context_i,
-                rules_i,
-                general_context,
-            )
+            if eval_likelihood:
+                res_l = self.evaluate_likelihood(
+                    record.threat,
+                    record.affected_assets,
+                    prev_str,
+                    rag_context_l,
+                    rules_l,
+                    general_context,
+                )
+                l_scores.append(res_l.likelihood_score)
+                l_reasons.append(res_l.likelihood_reasoning)
 
-            l_scores.append(res_l.likelihood_score)
-            l_reasons.append(res_l.likelihood_reasoning)
-            i_scores.append(res_i.impact_score)
-            i_reasons.append(res_i.impact_reasoning)
+            if eval_impact:
+                res_i = self.evaluate_impact(
+                    record.threat,
+                    record.affected_assets,
+                    mit_str,
+                    rag_context_i,
+                    rules_i,
+                    general_context,
+                )
+                i_scores.append(res_i.impact_score)
+                i_reasons.append(res_i.impact_reasoning)
 
-        if num_iterations == 1:
-            final_l_score = l_scores[0]
-            final_i_score = i_scores[0]
-            final_l_reasoning = l_reasons[0]
-            final_i_reasoning = i_reasons[0]
-        else:
-            try:
-                final_l_score = stat.mode(l_scores)
-            except stat.StatisticsError:
-                final_l_score = l_scores[0] if l_scores else 1
+        if eval_likelihood:
+            if num_iterations == 1:
+                final_l_score = l_scores[0]
+                final_l_reasoning = l_reasons[0]
+            else:
+                try:
+                    final_l_score = stat.mode(l_scores)
+                except stat.StatisticsError:
+                    final_l_score = l_scores[0] if l_scores else 1
+                valid_l_reasons = [
+                    r for r, s in zip(l_reasons, l_scores) if s == final_l_score
+                ]
+                final_l_reasoning = self.synthesize_reasoning(
+                    record.threat, "Likelihood", final_l_score, valid_l_reasons
+                )
+            record.likelihood = final_l_score
+            record.likelihood_reasoning = final_l_reasoning
 
-            try:
-                final_i_score = stat.mode(i_scores)
-            except stat.StatisticsError:
-                final_i_score = i_scores[0] if i_scores else 1
+        if eval_impact:
+            if num_iterations == 1:
+                final_i_score = i_scores[0]
+                final_i_reasoning = i_reasons[0]
+            else:
+                try:
+                    final_i_score = stat.mode(i_scores)
+                except stat.StatisticsError:
+                    final_i_score = i_scores[0] if i_scores else 1
+                valid_i_reasons = [
+                    r for r, s in zip(i_reasons, i_scores) if s == final_i_score
+                ]
+                final_i_reasoning = self.synthesize_reasoning(
+                    record.threat, "Impact", final_i_score, valid_i_reasons
+                )
+            record.impact = final_i_score
+            record.impact_reasoning = final_i_reasoning
 
-            valid_l_reasons = [
-                r for r, s in zip(l_reasons, l_scores) if s == final_l_score
-            ]
-            valid_i_reasons = [
-                r for r, s in zip(i_reasons, i_scores) if s == final_i_score
-            ]
-
-            final_l_reasoning = self.synthesize_reasoning(
-                record.threat, "Likelihood", final_l_score, valid_l_reasons
-            )
-            final_i_reasoning = self.synthesize_reasoning(
-                record.threat, "Impact", final_i_score, valid_i_reasons
-            )
-
-        record.likelihood = final_l_score
-        record.impact = final_i_score
-        record.risk_factor = final_l_score * final_i_score
-        record.likelihood_reasoning = final_l_reasoning
-        record.impact_reasoning = final_i_reasoning
+        record.risk_factor = record.likelihood * record.impact
         record.preventive_measures = prev_str
         record.mitigative_measures = mit_str
 

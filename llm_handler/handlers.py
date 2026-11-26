@@ -445,6 +445,39 @@ def handle_asset_extract(
 
 _THREAT_STOP_WORDS = {"threat", "attack", "risk", "minaccia", "attacco"}
 
+_CLOSE_PHRASES = {
+    "chiudi",
+    "chiudi discussione",
+    "conferma",
+    "confermo",
+    "confirm",
+    "salva",
+    "salva e chiudi",
+    "fine",
+    "fatto",
+    "basta così",
+    "basta cosi",
+    "va bene così",
+    "va bene cosi",
+    "perfetto così",
+    "perfetto cosi",
+    "close",
+    "close discussion",
+    "save",
+    "save and close",
+    "done",
+    "finish",
+    "finished",
+    "that's all",
+    "thats all",
+    "no further changes",
+}
+
+
+def _is_direct_close_command(user_input: str) -> bool:
+    normalized = user_input.strip().lstrip("/").rstrip(".,;:!?").strip().lower()
+    return normalized in _CLOSE_PHRASES
+
 
 def _dedupe_records(records: List[ThreatRecord]) -> List[ThreatRecord]:
     seen = set()
@@ -470,9 +503,7 @@ def _find_matching_threats(
         or ""
     )
     clean_term = (
-        search_term.strip(" '\".,;:!?").lower()
-        if isinstance(search_term, str)
-        else ""
+        search_term.strip(" '\".,;:!?").lower() if isinstance(search_term, str) else ""
     )
 
     if clean_term:
@@ -491,9 +522,7 @@ def _find_matching_threats(
             return _dedupe_records(substr_matches)
 
         sig_words = [
-            w
-            for w in clean_term.split()
-            if len(w) > 3 and w not in _THREAT_STOP_WORDS
+            w for w in clean_term.split() if len(w) > 3 and w not in _THREAT_STOP_WORDS
         ]
         if sig_words:
             word_matches = [
@@ -570,6 +599,96 @@ def _format_candidate_selection_prompt(
         + "\n".join(lines)
         + "\n\n*(Reply with the number or threat name, or type `annulla` / `cancel` to abort.)*"
     )
+
+
+def _format_threat_state(
+    record: ThreatRecord, title_prefix: str = "Assessment for"
+) -> str:
+    """Formatta lo stato completo di una minaccia in Markdown."""
+    icon, label = get_risk_indicator(record.risk_factor)
+    return (
+        f"### {title_prefix}: **{record.threat}**\n\n"
+        f"- **Affected Assets:** {record.affected_assets}\n"
+        f"- **Security Measures:** {record.security_measures}\n"
+        f"- 🛡️ **Preventive Measures:** {record.preventive_measures}\n"
+        f"- 🩹 **Mitigative Measures:** {record.mitigative_measures}\n"
+        f"- 📈 **Likelihood Score:** {record.likelihood}/5\n"
+        f"  - *Reasoning:* {record.likelihood_reasoning}\n"
+        f"- 💥 **Impact Score:** {record.impact}/5\n"
+        f"  - *Reasoning:* {record.impact_reasoning}\n\n"
+        f"**Risk Factor:** {icon} {record.risk_factor}/25 ({label})"
+    )
+
+
+def _format_final_discussion_summary(
+    record: ThreatRecord,
+    backup: Optional[ThreatRecord],
+    explanation: str = "",
+) -> str:
+    """Formatta il messaggio finale con il nuovo stato della minaccia e il riepilogo delle modifiche."""
+    state_block = _format_threat_state(record, title_prefix="Updated Assessment for")
+
+    changes: List[str] = []
+    if backup is not None:
+        field_diffs = [
+            ("Affected Assets", backup.affected_assets, record.affected_assets),
+            ("Security Measures", backup.security_measures, record.security_measures),
+            (
+                "Preventive Measures",
+                backup.preventive_measures,
+                record.preventive_measures,
+            ),
+            (
+                "Mitigative Measures",
+                backup.mitigative_measures,
+                record.mitigative_measures,
+            ),
+            (
+                "Likelihood Score",
+                f"{backup.likelihood}/5",
+                f"{record.likelihood}/5",
+            ),
+            (
+                "Likelihood Reasoning",
+                backup.likelihood_reasoning,
+                record.likelihood_reasoning,
+            ),
+            (
+                "Impact Score",
+                f"{backup.impact}/5",
+                f"{record.impact}/5",
+            ),
+            (
+                "Impact Reasoning",
+                backup.impact_reasoning,
+                record.impact_reasoning,
+            ),
+            (
+                "Risk Factor",
+                f"{backup.risk_factor}/25",
+                f"{record.risk_factor}/25",
+            ),
+        ]
+        for label, old_val, new_val in field_diffs:
+            if old_val != new_val:
+                changes.append(f"- **{label}:** `{old_val}` → `{new_val}`")
+
+    changes_block = (
+        "\n".join(changes)
+        if changes
+        else "- No modifications were made to the threat assessment."
+    )
+
+    parts = [
+        state_block,
+        f"### Modifications Applied\n\n{changes_block}",
+    ]
+    if explanation and explanation.strip():
+        parts.append(f"**Explanation:** {explanation.strip()}")
+    parts.append(
+        f"The modifications for **{record.threat}** have been saved. Discussion closed."
+    )
+    return "\n\n".join(parts)
 
 
 def handle_discuss_modify(
@@ -658,6 +777,19 @@ def handle_discuss_modify(
 
     icon, label = get_risk_indicator(target_record.risk_factor)
 
+    if not entered_new_discussion and _is_direct_close_command(effective_user_input):
+        backup_record = state.active_threat_backup
+        state.active_threat_id = None
+        state.active_threat_backup = None
+        state.bot_state = BotStateEnum.IDLE
+        return (
+            _format_final_discussion_summary(
+                record=target_record,
+                backup=backup_record,
+            ),
+            state,
+        )
+
     llm_json = chain_factory.get_llm(json_format=True)
 
     prompt_tmpl = ChatPromptTemplate.from_messages(
@@ -700,6 +832,7 @@ def handle_discuss_modify(
     updated_l_reason = parsed_res.get("updated_likelihood_reasoning")
     updated_i_reason = parsed_res.get("updated_impact_reasoning")
     is_finished = parsed_res.get("is_finished", False)
+    show_current_state = bool(parsed_res.get("show_current_state", False))
     response_text = parsed_res.get("response_text", "")
 
     def _clean_rule(val: Any) -> Optional[str]:
@@ -711,9 +844,53 @@ def handle_discuss_modify(
     add_rule_i = _clean_rule(parsed_res.get("additional_rule_i"))
     gen_obs = _clean_rule(parsed_res.get("general_observation"))
 
+    new_assets = _clean_rule(parsed_res.get("updated_affected_assets"))
+    new_sec_measures = _clean_rule(parsed_res.get("updated_security_measures"))
+    new_prev_measures = _clean_rule(parsed_res.get("updated_preventive_measures"))
+    new_mit_measures = _clean_rule(parsed_res.get("updated_mitigative_measures"))
+
+    assets_changed = False
+    all_measures_changed = False
+    prev_changed = False
+    mit_changed = False
+
+    if new_assets is not None and new_assets != target_record.affected_assets:
+        target_record.affected_assets = new_assets
+        assets_changed = True
+
+    if (
+        new_sec_measures is not None
+        and new_sec_measures != target_record.security_measures
+    ):
+        target_record.security_measures = new_sec_measures
+        all_measures_changed = True
+
+    if not all_measures_changed:
+        if (
+            new_prev_measures is not None
+            and new_prev_measures != target_record.preventive_measures
+        ):
+            target_record.preventive_measures = new_prev_measures
+            prev_changed = True
+
+        if (
+            new_mit_measures is not None
+            and new_mit_measures != target_record.mitigative_measures
+        ):
+            target_record.mitigative_measures = new_mit_measures
+            mit_changed = True
+
+    specific_measures_changed = prev_changed or mit_changed
+    needs_reeval = (
+        assets_changed
+        or all_measures_changed
+        or specific_measures_changed
+        or bool(add_rule_l or add_rule_i or gen_obs)
+    )
+
     if (  # gestisco i vari casi di rianalisi
         risk_analyzer is not None
-        and (add_rule_l or add_rule_i or gen_obs)
+        and needs_reeval
         and updated_l is None
         and updated_i is None
     ):
@@ -732,14 +909,26 @@ def handle_discuss_modify(
             if add_rule_i
             else state.custom_rules_impact
         )
+        reclassify = all_measures_changed and not specific_measures_changed
+        if assets_changed or all_measures_changed or gen_obs:
+            eval_l = True
+            eval_i = True
+        else:
+            eval_l = prev_changed or bool(add_rule_l)
+            eval_i = mit_changed or bool(add_rule_i)
+
         risk_analyzer.evaluate_single_threat(
             record=target_record,
             general_context=temp_general_context,
             rules_l=temp_rules_l,
             rules_i=temp_rules_i,
             num_iterations=state.num_iterations,
+            reclassify_measures=reclassify,
+            eval_likelihood=eval_l,
+            eval_impact=eval_i,
         )
-        response_text = ""
+        if not is_finished:
+            response_text = ""
     # Salvataggio nuove info
     if updated_l is None and entities.get("target_parameter") == "likelihood":
         val = entities.get("suggested_score")
@@ -765,32 +954,46 @@ def handle_discuss_modify(
         target_record.impact_reasoning = updated_i_reason.strip()
     # Chiusura
     if is_finished:
+        backup_record = state.active_threat_backup
         state.active_threat_id = None
         state.active_threat_backup = None
         state.bot_state = BotStateEnum.IDLE
-        if not response_text:
-            response_text = f"The modifications for **{target_record.threat}** have been saved. Discussion closed."
-
-    if not response_text:
-        new_icon, new_label = get_risk_indicator(target_record.risk_factor)
-        response_text = (
-            f"### Assessment for: **{target_record.threat}**\n\n"
-            f"- **Affected Assets:** {target_record.affected_assets}\n"
-            f"- **Security Measures:** {target_record.security_measures}\n"
-            f"- 🛡️ **Preventive Measures:** {target_record.preventive_measures}\n"
-            f"- 🩹 **Mitigative Measures:** {target_record.mitigative_measures}\n"
-            f"- 📈 **Likelihood Score:** {target_record.likelihood}/5\n"
-            f"  - *Reasoning:* {target_record.likelihood_reasoning}\n"
-            f"- 💥 **Impact Score:** {target_record.impact}/5\n"
-            f"  - *Reasoning:* {target_record.impact_reasoning}\n\n"
-            f"**Risk Factor:** {new_icon} {target_record.risk_factor}/25 ({new_label})\n\n"
-            f"Would you like to make any modifications or ask further questions about this analysis?"
+        response_text = _format_final_discussion_summary(
+            record=target_record,
+            backup=backup_record,
+            explanation=response_text,
         )
 
     if entered_new_discussion and not is_finished:
+        state_block = _format_threat_state(
+            target_record, title_prefix="Current Assessment for"
+        )
+        follow_up = (
+            response_text.strip()
+            if response_text and response_text.strip()
+            else "Would you like to make any modifications or ask further questions about this analysis?"
+        )
         response_text = (
-            f"{response_text.rstrip()}\n\n"
-            f"*(Type `annulla` or `cancel` to discard changes and exit.)*"
+            f"{state_block}\n\n"
+            f"{follow_up}\n\n"
+            f"*(Type `confirm`/`conferma` to save and exit, or `annulla`/`cancel` to discard changes.)*"
+        )
+    elif show_current_state and not is_finished:
+        state_block = _format_threat_state(
+            target_record, title_prefix="Current Assessment for"
+        )
+        follow_up = (
+            response_text.strip()
+            if response_text and response_text.strip()
+            else "Would you like to make any modifications or ask further questions about this analysis?"
+        )
+        response_text = f"{state_block}\n\n{follow_up}"
+    elif not response_text:
+        state_block = _format_threat_state(target_record)
+        response_text = (
+            f"{state_block}\n\n"
+            f"Would you like to make any modifications or ask further questions about this analysis?\n\n"
+            f"*(Type `confirm`/`conferma` to save and exit, or `annulla`/`cancel` to discard changes.)*"
         )
 
     return response_text, state
