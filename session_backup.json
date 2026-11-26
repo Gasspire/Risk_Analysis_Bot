@@ -1,6 +1,8 @@
 {
     "bot_state": "IDLE",
     "pending_threat": null,
+    "pending_discussion_candidates": null,
+    "pending_discussion_input": null,
     "active_threat_id": null,
     "active_threat_backup": null,
     "assessment_results": [
@@ -859,11 +861,11 @@
     "chat_history": [
         {
             "role": "user",
-            "content": "Coul you analyze the threat Ransomware in the network\n\n"
+            "content": "Could we discuss about the threat Unprotected things??"
         },
         {
             "role": "assistant",
-            "content": "To proceed with the threat analysis, additional details are required.\nPlease specify the following missing parameter(s): **security measures (`security_measures`)**.\n*(Type `cancel` to abort and exit.)*"
+            "content": "Multiple threats match your request. Please select which one you want to discuss:\n\n1. **Unprotected devices** (Assets: IoT devices lacking native security, staff BYOD devices)\n2. **Forgetting device in unprotected space** (Assets: Staff tablets, laptops, USB drives)\n3. **Unprotected public connections** (Assets: Guest Wi-Fi users, externally facing hospital portals)\n\n*(Reply with the number or threat name, or type `annulla` / `cancel` to abort.)*"
         },
         {
             "role": "user",
@@ -871,79 +873,23 @@
         },
         {
             "role": "assistant",
-            "content": "Pending threat analysis cancelled and temporary data discarded."
+            "content": "Threat selection cancelled."
         },
         {
             "role": "user",
-            "content": "Could we discuss about the threat Ransomware?"
+            "content": "Could we discuss about the threat Unprotected things??\n\n"
         },
         {
             "role": "assistant",
-            "content": "Let's dive into the Ransomware threat. What specific aspects of the threat would you like to discuss or update in the current threat assessment?\n\n*(Type `annulla` or `cancel` to discard changes and exit.)*"
+            "content": "Multiple threats match your request. Please select which one you want to discuss:\n\n1. **Unprotected devices** (Assets: IoT devices lacking native security, staff BYOD devices)\n2. **Forgetting device in unprotected space** (Assets: Staff tablets, laptops, USB drives)\n3. **Unprotected public connections** (Assets: Guest Wi-Fi users, externally facing hospital portals)\n\n*(Reply with the number or threat name, or type `annulla` / `cancel` to abort.)*"
         },
         {
             "role": "user",
-            "content": "What's the actual state"
+            "content": "1"
         },
         {
             "role": "assistant",
-            "content": "The current threat assessment for the ransomware attack is as follows: Threat: Ransomware attack, Affected Assets: Data center, patient's data, Medical workstations, IoT devices, Security Measures: Anti-Virus, Network isolation, Backup, Preventive Measures: Anti-Virus, Network isolation, Mitigative Measures: Anti-Virus, Network isolation, Backup, Likelihood Score: 3/5, Likelihood Reasoning: While the preventive controls in place provide some level of protection, the ease of execution and the historical frequency of ransomware attacks in healthcare environments make it likely that a ransomware attack could occur, Impact Score: 5/5, Impact Reasoning: The ransomware attack's success in encrypting patient data and compromising IoT devices poses a catastrophic risk to patient health and safety. The attack's impact on the data center and medical workstations is critical, as it disrupts core clinical operations and compromises patient care, Risk Factor: 15/25 (High). Is this the current state you were looking for?"
-        },
-        {
-            "role": "user",
-            "content": "exit"
-        },
-        {
-            "role": "assistant",
-            "content": "Discussion cancelled. Any modifications to **Ransomware attack** have been discarded."
-        },
-        {
-            "role": "user",
-            "content": "Could we discuss about the threat Ransomware?"
-        },
-        {
-            "role": "assistant",
-            "content": "Let's dive into the Ransomware threat. What specific aspects of the threat would you like to discuss or update in the current threat assessment?\n\n*(Type `annulla` or `cancel` to discard changes and exit.)*"
-        },
-        {
-            "role": "user",
-            "content": "What's the actual state?"
-        },
-        {
-            "role": "assistant",
-            "content": "The current threat assessment for the ransomware attack is as follows: Threat: Ransomware attack, Affected Assets: Data center, patient's data, Medical workstations, IoT devices, Security Measures: Anti-Virus, Network isolation, Backup, Preventive Measures: Anti-Virus, Network isolation, Mitigative Measures: Anti-Virus, Network isolation, Backup, Likelihood Score: 3/5, Likelihood Reasoning: While the preventive controls in place provide some level of protection, the ease of execution and the historical frequency of ransomware attacks in healthcare environments make it likely that a ransomware attack could occur, Impact Score: 5/5, Impact Reasoning: The ransomware attack's success in encrypting patient data and compromising IoT devices poses a catastrophic risk to patient health and safety. The attack's impact on the data center and medical workstations is critical, as it disrupts core clinical operations and compromises patient care, Risk Factor: 15/25 (High). Please let me know if you would like to make any changes or discuss further."
-        },
-        {
-            "role": "user",
-            "content": "The impact isn't so high because backup can mitigate a lot this problem modify that value to 4"
-        },
-        {
-            "role": "assistant",
-            "content": "The impact score has been updated to 4, reflecting the mitigating effect of backups. However, please confirm if this change accurately reflects your assessment of the threat's potential impact."
-        },
-        {
-            "role": "user",
-            "content": "yes confirm"
-        },
-        {
-            "role": "assistant",
-            "content": "The threat assessment for the ransomware attack has been finalized with a risk factor of 12/25 (Medium). Please review and save the assessment for future reference."
-        },
-        {
-            "role": "user",
-            "content": "What's an infusion pump?"
-        },
-        {
-            "role": "assistant",
-            "content": "An infusion pump is a smart, networked medical device that delivers fluids, such as nutrients, antibiotics, and medications, into a patient's body in highly controlled amounts."
-        },
-        {
-            "role": "user",
-            "content": "What's the actual state?\n\n"
-        },
-        {
-            "role": "assistant",
-            "content": "To proceed with the threat analysis, additional details are required.\nPlease specify the following missing parameter(s): **threat (`threat`), affected assets (`affected_assets`), security measures (`security_measures`)**.\n*(Type `cancel` to abort and exit.)*"
+            "content": "Let's dive into the threat 'Unprotected devices'. What specific aspects of this threat would you like to discuss or refine? Would you like to re-evaluate the likelihood or impact scores, or explore new preventive or mitigative measures?\n\n*(Type `annulla` or `cancel` to discard changes and exit.)*"
         },
         {
             "role": "user",
@@ -951,39 +897,7 @@
         },
         {
             "role": "assistant",
-            "content": "Pending threat analysis cancelled and temporary data discarded."
-        },
-        {
-            "role": "user",
-            "content": "Could we discuss about the threat Ransomware?"
-        },
-        {
-            "role": "assistant",
-            "content": "What specific aspects of the ransomware threat would you like to discuss or update in the threat assessment?\n\n*(Type `annulla` or `cancel` to discard changes and exit.)*"
-        },
-        {
-            "role": "user",
-            "content": "What's the actual state"
-        },
-        {
-            "role": "assistant",
-            "content": "The current threat assessment for the ransomware attack is as follows: Threat: Ransomware attack, Affected Assets: Data center, patient's data, Medical workstations, IoT devices, Security Measures: Anti-Virus, Network isolation, Backup, Preventive Measures: Anti-Virus, Network isolation, Preventive Measures: Anti-Virus, Network isolation, Mitigative Measures: Anti-Virus, Network isolation, Backup, Likelihood Score: 3/5, Likelihood Reasoning: While the preventive controls in place provide some level of protection, the ease of execution and the historical frequency of ransomware attacks in healthcare environments make it likely that a ransomware attack could occur, Impact Score: 4/5, Impact Reasoning: The ransomware attack's success in encrypting patient data and compromising IoT devices poses a significant risk to patient health and safety, but the presence of backup measures reduces the overall impact, Risk Factor: 12/25 (Medium). Would you like to make any changes or updates to this assessment?"
-        },
-        {
-            "role": "user",
-            "content": "Isn't the likelihood too high? "
-        },
-        {
-            "role": "assistant",
-            "content": "The likelihood score of 3/5 is based on the ease of execution and historical frequency of ransomware attacks in healthcare environments. However, we can re-evaluate this score if you'd like to consider additional factors or assumptions. Can you specify what you think might be too high about the likelihood score?"
-        },
-        {
-            "role": "user",
-            "content": "exit"
-        },
-        {
-            "role": "assistant",
-            "content": "Discussion cancelled. Any modifications to **Ransomware attack** have been discarded."
+            "content": "Discussion cancelled. Any modifications to **Unprotected devices** have been discarded."
         }
     ],
     "general_context": "The scenario concerns Remote Patient Monitoring (RPM), a telehealth use case in which healthcare providers monitor patients' biometric data directly from their homes. It is aimed at patients with chronic or recurring conditions (e.g., diabetes, cardiac or pulmonary diseases) or used to manage pandemic scenarios and areas with a shortage of healthcare facilities.\n\nThe architecture is distributed across 3 main domains:\n\nPatient Home: where the data is collected.\n\nTelehealth Platform Provider: a cloud-based third-party entity that manages the devices, receives the data, and exposes the dashboards.\n\nHDO (Healthcare Delivery Organization): the healthcare facility (e.g., hospital) where clinicians evaluate the data and update Electronic Health Records (EHR).\n\nData flows bidirectionally (biometric readings, questionnaires, audio/video consultations) via two main pathways: cellular (directly from the device) or broadband (via intermediate gateways/mobile devices).",

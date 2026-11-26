@@ -49,6 +49,11 @@ def cancel_active_flow(state: SessionStateData) -> Tuple[str, SessionStateData]:
             "Pending threat analysis cancelled and temporary data discarded."
         )
 
+    if state.pending_discussion_candidates:
+        state.pending_discussion_candidates = None
+        state.pending_discussion_input = None
+        messages.append("Threat selection cancelled.")
+
     if state.active_threat_id is not None:
         restored_name = None
         if state.active_threat_backup is not None:
@@ -105,11 +110,14 @@ class RiskAgentExecutor:
         has_pending = (
             state.pending_threat is not None
         )  # Controllo se c'è una minaccia in sospeso
+        has_pending_selection = bool(state.pending_discussion_candidates)
         has_active_discussion = (
             state.active_threat_id is not None
         )  # Controllo se ci sono discussioni attive
 
-        if (has_pending or has_active_discussion) and is_cancel_command(user_input):
+        if (
+            has_pending or has_pending_selection or has_active_discussion
+        ) and is_cancel_command(user_input):
             output_text, updated_state = cancel_active_flow(state)
             updated_state.chat_history.append({"role": "user", "content": user_input})
             updated_state.chat_history.append(
@@ -139,8 +147,8 @@ class RiskAgentExecutor:
         ):  # se c'è una minaccia in sospeso, assegna l'intento di analisi singola
             intent = IntentType.SINGLE_THREAT_ANALYSIS
         elif (
-            has_active_discussion
-        ):  # se ci sono discussioni attive, assegna l'intento di discussione
+            has_pending_selection or has_active_discussion
+        ):  # se c'è una selezione o discussione attiva, assegna l'intento di discussione
             intent = IntentType.DISCUSS_MODIFY
 
         # In base all'intento, scelgo l'handler

@@ -443,6 +443,135 @@ def handle_asset_extract(
     return report, state
 
 
+_THREAT_STOP_WORDS = {"threat", "attack", "risk", "minaccia", "attacco"}
+
+
+def _dedupe_records(records: List[ThreatRecord]) -> List[ThreatRecord]:
+    seen = set()
+    unique: List[ThreatRecord] = []
+    for rec in records:
+        if rec.id not in seen:
+            seen.add(rec.id)
+            unique.append(rec)
+    return unique
+
+
+def _find_matching_threats(
+    user_input: str,
+    entities: Dict[str, Any],
+    assessment_results: List[ThreatRecord],
+) -> List[ThreatRecord]:
+    """Trova tutti i ThreatRecord che corrispondono alla ricerca dell'utente."""
+    search_term = (
+        entities.get("threat_name")
+        or entities.get("threat")
+        or entities.get("target_threat")
+        or entities.get("target_record")
+        or ""
+    )
+    clean_term = (
+        search_term.strip(" '\".,;:!?").lower()
+        if isinstance(search_term, str)
+        else ""
+    )
+
+    if clean_term:
+        exact_matches = [
+            r for r in assessment_results if r.threat.lower() == clean_term
+        ]
+        if exact_matches:
+            return _dedupe_records(exact_matches)
+
+        substr_matches = [
+            r
+            for r in assessment_results
+            if clean_term in r.threat.lower() or r.threat.lower() in clean_term
+        ]
+        if substr_matches:
+            return _dedupe_records(substr_matches)
+
+        sig_words = [
+            w
+            for w in clean_term.split()
+            if len(w) > 3 and w not in _THREAT_STOP_WORDS
+        ]
+        if sig_words:
+            word_matches = [
+                r
+                for r in assessment_results
+                if any(w in r.threat.lower() for w in sig_words)
+            ]
+            if word_matches:
+                return _dedupe_records(word_matches)
+
+    user_input_lower = user_input.lower()
+    input_substr_matches = [
+        r for r in assessment_results if r.threat.lower() in user_input_lower
+    ]
+    if input_substr_matches:
+        return _dedupe_records(input_substr_matches)
+
+    input_word_matches = []
+    for r in assessment_results:
+        sig_words = [
+            w
+            for w in r.threat.lower().split()
+            if len(w) > 3 and w not in _THREAT_STOP_WORDS
+        ]
+        if sig_words and any(w in user_input_lower for w in sig_words):
+            input_word_matches.append(r)
+
+    return _dedupe_records(input_word_matches)
+
+
+def _resolve_candidate_selection(
+    user_input: str, candidates: List[ThreatRecord]
+) -> Optional[ThreatRecord]:
+    """Risolve la scelta dell'utente tra più minacce candidate (per indice o nome)."""
+    cleaned = user_input.strip().lstrip("#").rstrip(".,;:!?").strip()
+    if cleaned.isdigit():
+        idx = int(cleaned) - 1
+        if 0 <= idx < len(candidates):
+            return candidates[idx]
+
+    lowered = cleaned.lower()
+    if not lowered:
+        return None
+
+    exact = [c for c in candidates if c.threat.lower() == lowered]
+    if len(exact) == 1:
+        return exact[0]
+
+    substr = [
+        c
+        for c in candidates
+        if lowered in c.threat.lower() or c.threat.lower() in lowered
+    ]
+    if len(substr) == 1:
+        return substr[0]
+
+    return None
+
+
+def _format_candidate_selection_prompt(
+    candidates: List[ThreatRecord], invalid_choice: bool = False
+) -> str:
+    header = (
+        "Invalid selection. Please reply with the number or name of one of the matching threats:\n\n"
+        if invalid_choice
+        else "Multiple threats match your request. Please select which one you want to discuss:\n\n"
+    )
+    lines = [
+        f"{idx}. **{rec.threat}** (Assets: {rec.affected_assets})"
+        for idx, rec in enumerate(candidates, start=1)
+    ]
+    return (
+        header
+        + "\n".join(lines)
+        + "\n\n*(Reply with the number or threat name, or type `annulla` / `cancel` to abort.)*"
+    )
+
+
 def handle_discuss_modify(
     user_input: str,
     state: SessionStateData,
@@ -454,11 +583,44 @@ def handle_discuss_modify(
     active_id = state.active_threat_id  # ID del threat attivo
     entered_new_discussion = False
     target_record: Optional[ThreatRecord] = None
+    effective_user_input = user_input
 
     if active_id:  # Se non c'è, significa che siamo appena entrati nella funzione
         target_record = next(
             (r for r in state.assessment_results if r.id == active_id), None
         )
+
+    if not target_record and state.pending_discussion_candidates:
+        candidates = [
+            r
+            for r in state.assessment_results
+            if r.id in state.pending_discussion_candidates
+        ]
+        if not candidates:
+            state.pending_discussion_candidates = None
+            state.pending_discussion_input = None
+            state.bot_state = BotStateEnum.IDLE
+            return (
+                "The matching threats are no longer available in the assessment report.",
+                state,
+            )
+
+        selected = _resolve_candidate_selection(user_input, candidates)
+        if not selected:
+            return (
+                _format_candidate_selection_prompt(candidates, invalid_choice=True),
+                state,
+            )
+
+        target_record = selected
+        if state.pending_discussion_input:
+            effective_user_input = state.pending_discussion_input
+        state.pending_discussion_candidates = None
+        state.pending_discussion_input = None
+        state.active_threat_id = target_record.id
+        state.active_threat_backup = target_record.model_copy(deep=True)
+        state.bot_state = BotStateEnum.DISCUSSING_THREAT
+        entered_new_discussion = True
 
     if (
         not target_record
@@ -469,71 +631,25 @@ def handle_discuss_modify(
                 state,
             )
 
-        search_term = (  # Prendo quello che mi hanno passato nei campi (l'LLM potrebbe non per forza scrivere sempre il target correttamente, è una misura di sicurezza in più)
-            entities.get("threat_name")
-            or entities.get("threat")
-            or entities.get("target_threat")
-            or entities.get("target_record")
-            or ""
-        )
-        clean_term = (
-            search_term.strip(" '\".,;:!?").lower()
-            if isinstance(search_term, str)
-            else ""
+        matches = _find_matching_threats(
+            user_input=user_input,
+            entities=entities,
+            assessment_results=state.assessment_results,
         )
 
-        if clean_term:  # controllo se c'è il termine da cercare
-            target_record = next(
-                (
-                    r
-                    for r in state.assessment_results  # cerco il termine nella minaccia o viceversa
-                    if clean_term in r.threat.lower() or r.threat.lower() in clean_term
-                ),
-                None,
-            )
-
-            if not target_record:  # Prima non ho trovato nulla
-                sig_words = [
-                    w
-                    for w in clean_term.split()  # splitto l'input
-                    if len(w) > 3
-                    and w not in ["threat", "attack", "risk", "minaccia", "attacco"]
-                ]
-
-                if sig_words:  # cerco la singola parola
-                    target_record = next(
-                        (
-                            r
-                            for r in state.assessment_results
-                            if any(w in r.threat.lower() for w in sig_words)
-                        ),
-                        None,
-                    )
-
-        if not target_record:  # Ancora nulla
-            user_input_lower = user_input.lower()  # Controllo l'input utente
-            for r in state.assessment_results:
-                if r.threat.lower() in user_input_lower:
-                    target_record = r
-                    break
-
-            if not target_record:
-                for r in state.assessment_results:
-                    sig_words = [
-                        w
-                        for w in r.threat.lower().split()
-                        if len(w) > 3
-                        and w not in ["threat", "attack", "risk", "minaccia", "attacco"]
-                    ]
-                    if sig_words and any(w in user_input_lower for w in sig_words):
-                        target_record = r
-                        break
-
-        if not target_record:  # Il bot si arrende
+        if not matches:  # Il bot si arrende
             return (
-                f"The requested threat is not present in the assessment report.",
+                "The requested threat is not present in the assessment report.",
                 state,
             )
+
+        if len(matches) > 1:
+            state.pending_discussion_candidates = [r.id for r in matches]
+            state.pending_discussion_input = user_input
+            state.bot_state = BotStateEnum.AWAITING_THREAT_SELECTION
+            return _format_candidate_selection_prompt(matches), state
+
+        target_record = matches[0]
         # Arrivato a questo punto, abbiamo una minaccia
         state.active_threat_id = target_record.id
         state.active_threat_backup = target_record.model_copy(deep=True)
@@ -569,7 +685,7 @@ def handle_discuss_modify(
                 "impact_reasoning": target_record.impact_reasoning,
                 "risk_factor": target_record.risk_factor,
                 "risk_label": label,
-                "input": user_input,
+                "input": effective_user_input,
             }
         )
 
